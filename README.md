@@ -10,6 +10,27 @@
 
 Uses pcap to inspect tchannel traffic over a network interface.
 
+```
+  Usage: tcap [options]
+
+  Options:
+
+    -h, --help                 output usage information
+    -V, --version              output the version number
+    -i --interface [interface  network interface name for capture (defaults to first with an address)
+    -f --filter [filter]       packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
+    -b --buffer-size [mb]      size in MiB to buffer between libpcap and app (default: 10)
+    --no-color                 disables colors (default: not attached to a tty)
+```
+
+## Example
+
+To monitor incoming and outgoing tchannel packets on port 4040 over the loopback interface on a Mac:
+
+```
+tcap -i lo0
+```
+
 ## Installation
 
 `npm install tcap -g`
