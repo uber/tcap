@@ -22,7 +22,8 @@
   "dependencies": {
     "pcap": "^2.0.1",
     "hexer": "^1.0.4",
-    "commander": "^2.6.0"
+    "commander": "^2.6.0",
+    "chalk": "^1.0.0"
   },
   "devDependencies": {
     "coveralls": "^2.10.0",

@@ -1,3 +1,25 @@
+// Copyright (c) 2015 Uber Technologies, Inc.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+/*global console, process*/
+/*eslint no-console:0 max-statements: [1, 30]*/
+
 'use strict';
 
 var stream = require('stream');
@@ -21,23 +43,28 @@ util.inherits(TChannelTracker, events.EventEmitter);
 TChannelTracker.prototype.listen = function listen() {
     var self = this;
     self.tcpTracker = new pcap.TCPTracker();
-    self.pcapSession = pcap.createSession(self.interface, self.filter, self.bufferSize);
-    self.pcapSession.on('packet', function (rawPacket) {
+    self.pcapSession = pcap.createSession(
+        self.interface,
+        self.filter,
+        self.bufferSize
+    );
+    self.pcapSession.on('packet', function handleTcpPacket(rawPacket) {
         var packet = pcap.decode.packet(rawPacket);
         self.tcpTracker.track_packet(packet);
     });
-    self.tcpTracker.on('session', function (tcpSession) {
+    self.tcpTracker.on('session', function handleTcpSession(tcpSession) {
         self.handleTcpSession(tcpSession);
     });
     console.log('listening', self.pcapSession.device_name);
 };
 
-TChannelTracker.prototype.handleTcpSession = function handleTcpSession(tcpSession) {
+TChannelTracker.prototype.handleTcpSession =
+function handleTcpSession(tcpSession) {
     var self = this;
     var sessionNumber = self.nextSessionNumber++;
 
     console.log('session started', sessionNumber);
-    //console.log('session', tcpSession);
+    // console.log('session', tcpSession);
 
     var incoming = new stream.PassThrough();
     var outgoing = new stream.PassThrough();
@@ -57,7 +84,7 @@ TChannelTracker.prototype.handleTcpSession = function handleTcpSession(tcpSessio
         console.log('sent on session', sessionNumber);
         outgoing.write(chunk);
         outgoingHexer.reset();
-    };
+    }
 
     tcpSession.on('data recv', handleDataRecv);
     function handleDataRecv(session, chunk) {
@@ -66,21 +93,27 @@ TChannelTracker.prototype.handleTcpSession = function handleTcpSession(tcpSessio
         incomingHexer.reset();
     }
 
-    tcpSession.once('end', function (session) {
+    tcpSession.once('end', handleSessionEnd);
+    function handleSessionEnd(session) {
         console.log('session ended', sessionNumber);
         tcpSession.removeListener('data send', handleDataSend);
         tcpSession.removeListener('data recv', handleDataRecv);
         incoming.end();
         outgoing.end();
-    });
+    }
 
     if (self.verbose) {
-        tcpSession.on('retransmit', function (session, direction, sequenceNumber) {
-        });
-        tcpSession.on('reset', function (session) {
-        });
-        tcpSession.on('syn retry', function (session) {
-        });
+        tcpSession.on('retransmit', handleRetransmit);
+        tcpSession.on('reset', handleReset);
+        tcpSession.on('syn retry', handleRetry);
+    }
+
+    function handleRetransmit(session, direction, sequenceNumber) {
+    }
+
+    function handleReset(session) {
+    }
+
+    function handleRetry(session) {
     }
 };
-
