@@ -28,7 +28,7 @@ function main(arg) {
     var tracker = new TChannelTracker({
         interface: commander.interface,
         filter: commander.filter,
-        bufferSize: bufferSizeMb
+        bufferSize: bufferSizeMb * 1024 * 1024
     });
     tracker.listen();
 }
