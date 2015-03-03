@@ -21,10 +21,11 @@
   ],
   "dependencies": {
     "pcap": "^2.0.1",
-    "hexer": "^1.0.4",
+    "hexer": "^1.2.0",
     "commander": "^2.6.0",
-    "tchannel": "git+ssh://gitolite@code.uber.internal:github/uber/tchannel#v2",
-    "chalk": "^1.0.0"
+    "tchannel": "git://github.com/uber/tchannel#dev_node",
+    "chalk": "^1.0.0",
+    "sprintf-js": "^1.0.2"
   },
   "devDependencies": {
     "coveralls": "^2.10.0",

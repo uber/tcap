@@ -42,6 +42,10 @@ function main(arg) {
         .option('-b --buffer-size [mb]',
             'size in MiB to buffer between libpcap and app ' +
             '(default: 10)')
+        .option('-h --hex',
+            'show hex dumps for all packets')
+        .option('-j --json',
+            'show JSON dumps for all parsed frames')
         // handled by chalk module:
         .option('--color',
             'enables colors if not connected to a tty.')
@@ -56,6 +60,8 @@ function main(arg) {
     var tracker = new TChannelTracker({
         interface: commander.interface,
         filter: commander.filter,
+        alwaysShowJson: commander.json,
+        alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024
     });
     tracker.listen();
