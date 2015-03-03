@@ -25,15 +25,20 @@
 var stream = require('stream');
 var pcap = require('pcap');
 var util = require('util');
+var ansi = require('chalk');
 var events = require('events');
 var tchannel = require('tchannel/v2');
+var TChannelSessionTracker = require('./tchannel-session-tracker');
 
 module.exports = TChannelTracker;
 function TChannelTracker(opts) {
     var self = this;
     events.EventEmitter.call(self, opts);
+    // TODO accept ports as arguments and compose a default filter
     self.filter = opts.filter || 'ip proto \\tcp and port 4040';
     self.interface = opts.interface; // e.g., en0
+    self.alwaysShowJson = opts.alwaysShowJson;
+    self.alwaysShowHex = opts.alwaysShowHex;
     self.bufferSize = opts.bufferSize; // in bytes
     self.nextSessionNumber = 0;
 }
@@ -41,6 +46,7 @@ function TChannelTracker(opts) {
 util.inherits(TChannelTracker, events.EventEmitter);
 
 TChannelTracker.prototype.listen = function listen() {
+    // TODO support listening on multiple interfaces
     var self = this;
     self.tcpTracker = new pcap.TCPTracker();
     self.pcapSession = pcap.createSession(
@@ -55,7 +61,11 @@ TChannelTracker.prototype.listen = function listen() {
     self.tcpTracker.on('session', function handleTcpSession(tcpSession) {
         self.handleTcpSession(tcpSession);
     });
-    console.log('listening', self.pcapSession.device_name);
+    console.log(
+        ansi.cyan('listening on interface %s with filter %s'),
+        self.pcapSession.device_name,
+        self.filter
+    );
 };
 
 TChannelTracker.prototype.handleTcpSession =
@@ -64,11 +74,27 @@ function handleTcpSession(tcpSession) {
     var sessionNumber = self.nextSessionNumber++;
 
     if (tcpSession.missed_syn) {
-        console.log('missed session in progress');
+        console.log(
+            ansi.cyan('session missed src=%s --> dst=%s'),
+            tcpSession.src,
+            tcpSession.dst
+        );
         return;
     }
 
-    console.log('session started', sessionNumber);
+    console.log(
+        ansi.cyan('session=%s started src=%s --> dst=%s'),
+        sessionNumber,
+        tcpSession.src,
+        tcpSession.dst
+    );
+
+    var tchannelSessionTracker = new TChannelSessionTracker({
+        sessionNumber: sessionNumber,
+        tcpSession: tcpSession,
+        alwaysShowJson: self.alwaysShowJson,
+        alwaysShowHex: self.alwaysShowHex
+    });
 
     var incoming = new stream.PassThrough();
     var outgoing = new stream.PassThrough();
@@ -79,26 +105,47 @@ function handleTcpSession(tcpSession) {
     incoming.pipe(incomingReader);
     outgoing.pipe(outgoingReader);
 
-    incomingReader.on('data', inspectFrame);
-    outgoingReader.on('data', inspectFrame);
-    incomingReader.on('error', inspectError);
-    outgoingReader.on('error', inspectError);
-
     tcpSession.on('data send', handleDataSend);
     function handleDataSend(session, chunk) {
-        console.log('sent on session', sessionNumber);
+        tchannelSessionTracker.inspectPacket(chunk, 'outgoing');
         outgoing.write(chunk);
     }
 
     tcpSession.on('data recv', handleDataRecv);
     function handleDataRecv(session, chunk) {
-        console.log('received on session', sessionNumber);
+        tchannelSessionTracker.inspectPacket(chunk, 'incoming');
         incoming.write(chunk);
+    }
+
+    incomingReader.on('data', handleIncomingData);
+    function handleIncomingData(frame) {
+        tchannelSessionTracker.inspectFrame(frame, 'incoming');
+    }
+
+    outgoingReader.on('data', handleOutgoingData);
+    function handleOutgoingData(frame) {
+        tchannelSessionTracker.inspectFrame(frame, 'outgoing');
+    }
+
+    incomingReader.on('error', handleIncomingError);
+    function handleIncomingError(error) {
+        tchannelSessionTracker.inspectError(error, 'incoming');
+    }
+
+    outgoingReader.on('error', handleOutgoingError);
+    function handleOutgoingError(error) {
+        tchannelSessionTracker.inspectError(error, 'outgoing');
     }
 
     tcpSession.once('end', handleSessionEnd);
     function handleSessionEnd(session) {
-        console.log('session ended', sessionNumber);
+        console.log(
+            ansi.cyan('session=%s ended src=%s --> dst=%s'),
+            sessionNumber,
+            tcpSession.src,
+            tcpSession.dst
+        );
+
         tcpSession.removeListener('data send', handleDataSend);
         tcpSession.removeListener('data recv', handleDataRecv);
         incoming.end();
@@ -106,11 +153,3 @@ function handleTcpSession(tcpSession) {
     }
 
 };
-
-function inspectFrame(frame) {
-    console.log(frame);
-}
-
-function inspectError(error) {
-    console.error(error);
-}
