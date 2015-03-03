@@ -17,7 +17,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-/*global console, process*/
+/*global console*/
 /*eslint no-console:0 max-statements: [1, 30]*/
 
 'use strict';
@@ -26,7 +26,7 @@ var stream = require('stream');
 var pcap = require('pcap');
 var util = require('util');
 var events = require('events');
-var hexer = require('hexer');
+var tchannel = require('tchannel/v2');
 
 module.exports = TChannelTracker;
 function TChannelTracker(opts) {
@@ -63,34 +63,37 @@ function handleTcpSession(tcpSession) {
     var self = this;
     var sessionNumber = self.nextSessionNumber++;
 
+    if (tcpSession.missed_syn) {
+        console.log('missed session in progress');
+        return;
+    }
+
     console.log('session started', sessionNumber);
-    // console.log('session', tcpSession);
 
     var incoming = new stream.PassThrough();
     var outgoing = new stream.PassThrough();
 
-    var incomingHexer = new hexer.Transform();
-    var outgoingHexer = new hexer.Transform();
+    var incomingReader = new tchannel.Parser(tchannel.Frame);
+    var outgoingReader = new tchannel.Parser(tchannel.Frame);
 
-    incoming.pipe(incomingHexer).pipe(process.stdout);
-    outgoing.pipe(outgoingHexer).pipe(process.stdout);
+    incoming.pipe(incomingReader);
+    outgoing.pipe(outgoingReader);
 
-    if (tcpSession.missed_syn) {
-        return;
-    }
+    incomingReader.on('data', inspectFrame);
+    outgoingReader.on('data', inspectFrame);
+    incomingReader.on('error', inspectError);
+    outgoingReader.on('error', inspectError);
 
     tcpSession.on('data send', handleDataSend);
     function handleDataSend(session, chunk) {
         console.log('sent on session', sessionNumber);
         outgoing.write(chunk);
-        outgoingHexer.reset();
     }
 
     tcpSession.on('data recv', handleDataRecv);
     function handleDataRecv(session, chunk) {
         console.log('received on session', sessionNumber);
         incoming.write(chunk);
-        incomingHexer.reset();
     }
 
     tcpSession.once('end', handleSessionEnd);
@@ -102,18 +105,12 @@ function handleTcpSession(tcpSession) {
         outgoing.end();
     }
 
-    if (self.verbose) {
-        tcpSession.on('retransmit', handleRetransmit);
-        tcpSession.on('reset', handleReset);
-        tcpSession.on('syn retry', handleRetry);
-    }
-
-    function handleRetransmit(session, direction, sequenceNumber) {
-    }
-
-    function handleReset(session) {
-    }
-
-    function handleRetry(session) {
-    }
 };
+
+function inspectFrame(frame) {
+    console.log(frame);
+}
+
+function inspectError(error) {
+    console.error(error);
+}

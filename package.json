@@ -23,6 +23,7 @@
     "pcap": "^2.0.1",
     "hexer": "^1.0.4",
     "commander": "^2.6.0",
+    "tchannel": "git+ssh://gitolite@code.uber.internal:github/uber/tchannel#v2",
     "chalk": "^1.0.0"
   },
   "devDependencies": {
