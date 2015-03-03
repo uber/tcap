@@ -33,7 +33,7 @@ tcap -i lo0
 
 ## Installation
 
-`npm install tcap -g`
+`npm install uber/tcap -g`
 
 ## Tests
 

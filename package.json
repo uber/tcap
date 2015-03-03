@@ -23,7 +23,7 @@
     "pcap": "^2.0.1",
     "hexer": "^1.2.0",
     "commander": "^2.6.0",
-    "tchannel": "git://github.com/uber/tchannel#dev_node",
+    "tchannel": "uber/tchannel#dev_node",
     "chalk": "^1.0.0",
     "sprintf-js": "^1.0.2"
   },

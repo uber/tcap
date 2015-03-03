@@ -99,8 +99,8 @@ function handleTcpSession(tcpSession) {
     var incoming = new stream.PassThrough();
     var outgoing = new stream.PassThrough();
 
-    var incomingReader = new tchannel.Parser(tchannel.Frame);
-    var outgoingReader = new tchannel.Parser(tchannel.Frame);
+    var incomingReader = new tchannel.Reader(tchannel.Frame);
+    var outgoingReader = new tchannel.Reader(tchannel.Frame);
 
     incoming.pipe(incomingReader);
     outgoing.pipe(outgoingReader);
