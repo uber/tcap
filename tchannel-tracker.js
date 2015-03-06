@@ -34,38 +34,57 @@ module.exports = TChannelTracker;
 function TChannelTracker(opts) {
     var self = this;
     events.EventEmitter.call(self, opts);
-    // TODO accept ports as arguments and compose a default filter
-    self.filter = opts.filter || 'ip proto \\tcp and port 4040';
-    self.interface = opts.interface; // e.g., en0
+
+    self.filter = opts.filter || 'ip proto \\tcp';
+
+    var ports = opts.ports.slice();
+    if (ports.length) {
+        self.filter += ' and (' + ports.map(portPredicate).join(' or ') + ')';
+    } else if (!/\bport\b/.test(self.filter)) {
+        self.filter += ' and port 4040';
+    }
+
+    self.interfaces = opts.interfaces; // e.g., ['en0']
     self.alwaysShowJson = opts.alwaysShowJson;
     self.alwaysShowHex = opts.alwaysShowHex;
     self.bufferSize = opts.bufferSize; // in bytes
     self.nextSessionNumber = 0;
 }
 
+function portPredicate(port) {
+    return 'port ' + port;
+}
+
 util.inherits(TChannelTracker, events.EventEmitter);
 
 TChannelTracker.prototype.listen = function listen() {
-    // TODO support listening on multiple interfaces
     var self = this;
-    self.tcpTracker = new pcap.TCPTracker();
-    self.pcapSession = pcap.createSession(
-        self.interface,
-        self.filter,
-        self.bufferSize
-    );
-    self.pcapSession.on('packet', function handleTcpPacket(rawPacket) {
-        var packet = pcap.decode.packet(rawPacket);
-        self.tcpTracker.track_packet(packet);
-    });
-    self.tcpTracker.on('session', function handleTcpSession(tcpSession) {
-        self.handleTcpSession(tcpSession);
-    });
-    console.log(
-        ansi.cyan('listening on interface %s with filter %s'),
-        self.pcapSession.device_name,
-        self.filter
-    );
+    var listeners = {};
+    self.interfaces.forEach(listenOnInterface);
+    function listenOnInterface(iface) {
+        var tcpTracker = new pcap.TCPTracker();
+        var pcapSession = pcap.createSession(
+            iface,
+            self.filter,
+            self.bufferSize
+        );
+        pcapSession.on('packet', function handleTcpPacket(rawPacket) {
+            var packet = pcap.decode.packet(rawPacket);
+            tcpTracker.track_packet(packet);
+        });
+        tcpTracker.on('session', function handleTcpSession(tcpSession) {
+            self.handleTcpSession(tcpSession);
+        });
+        listeners[iface] = {
+            tcpTracker: tcpTracker,
+            pcapSession: pcapSession
+        };
+        console.log(
+            ansi.cyan('listening on interface %s with filter %s'),
+            pcapSession.device_name,
+            self.filter
+        );
+    }
 };
 
 TChannelTracker.prototype.handleTcpSession =
