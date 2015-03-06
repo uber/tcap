@@ -196,11 +196,15 @@ function inspectArgument(name, argument) {
 };
 
 function hex(value) {
-    return hexer(value, {
-        prefix: '  ',
-        gutter: 4, // maximum frame length is 64k so FFFF
-        renderHuman: renderByte
-    });
+    if (value.length === 0) {
+        return '';
+    } else {
+        return hexer(value, {
+            prefix: '  ',
+            gutter: 4, // maximum frame length is 64k so FFFF
+            renderHuman: renderByte
+        });
+    }
 }
 
 function renderByte(c) {
