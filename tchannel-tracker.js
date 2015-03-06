@@ -73,7 +73,7 @@ TChannelTracker.prototype.listen = function listen() {
             tcpTracker.track_packet(packet);
         });
         tcpTracker.on('session', function handleTcpSession(tcpSession) {
-            self.handleTcpSession(tcpSession);
+            self.handleTcpSession(tcpSession, iface);
         });
         listeners[iface] = {
             tcpTracker: tcpTracker,
@@ -88,24 +88,26 @@ TChannelTracker.prototype.listen = function listen() {
 };
 
 TChannelTracker.prototype.handleTcpSession =
-function handleTcpSession(tcpSession) {
+function handleTcpSession(tcpSession, iface) {
     var self = this;
     var sessionNumber = self.nextSessionNumber++;
 
     if (tcpSession.missed_syn) {
         console.log(
-            ansi.cyan('session missed src=%s --> dst=%s'),
+            ansi.cyan('session missed src=%s --> dst=%s on %s'),
             tcpSession.src,
-            tcpSession.dst
+            tcpSession.dst,
+            iface
         );
         return;
     }
 
     console.log(
-        ansi.cyan('session=%s started src=%s --> dst=%s'),
+        ansi.cyan('session=%s started src=%s --> dst=%s on %s'),
         sessionNumber,
         tcpSession.src,
-        tcpSession.dst
+        tcpSession.dst,
+        iface
     );
 
     var tchannelSessionTracker = new TChannelSessionTracker({
@@ -159,10 +161,11 @@ function handleTcpSession(tcpSession) {
     tcpSession.once('end', handleSessionEnd);
     function handleSessionEnd(session) {
         console.log(
-            ansi.cyan('session=%s ended src=%s --> dst=%s'),
+            ansi.cyan('session=%s ended src=%s --> dst=%s on %s'),
             sessionNumber,
             tcpSession.src,
-            tcpSession.dst
+            tcpSession.dst,
+            iface
         );
 
         tcpSession.removeListener('data send', handleDataSend);
