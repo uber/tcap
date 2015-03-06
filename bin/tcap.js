@@ -32,19 +32,26 @@ if (require.main === module) {
 
 function main(arg) {
 
+    function collect(x, xs) {
+        xs.push(x);
+        return xs;
+    }
+
     commander.version(require('../package.json').version)
-        .option('-i --interface [interface',
-            'network interface name for capture ' +
-            '(defaults to first with an address)', '')
-        .option('-f --filter [filter]',
+        .option('-i --interface <interface>',
+            'network interface interfaces ' +
+            '(defaults to first with an address)', collect, [])
+        .option('-p --port <port>',
+            'a port or ports to track', collect, [])
+        .option('-f --filter <filter>',
             'packet filter in pcap-filter(7) syntax ' +
             '(default: all TCP packets on port 4040)')
-        .option('-b --buffer-size [mb]',
+        .option('-b --buffer-size <mb>',
             'size in MiB to buffer between libpcap and app ' +
             '(default: 10)')
-        .option('-h --hex',
+        .option('-x --hex',
             'show hex dumps for all packets')
-        .option('-j --json',
+        .option('--inspect',
             'show JSON dumps for all parsed frames')
         // handled by chalk module:
         .option('--color',
@@ -58,7 +65,8 @@ function main(arg) {
     checkUid();
 
     var tracker = new TChannelTracker({
-        interface: commander.interface,
+        interfaces: commander.interface.length ? commander.interface : [''],
+        ports: commander.port,
         filter: commander.filter,
         alwaysShowJson: commander.json,
         alwaysShowHex: commander.hex,
