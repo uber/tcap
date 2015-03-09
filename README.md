@@ -20,16 +20,43 @@ Uses pcap to inspect tchannel traffic over a network interface.
     -i --interface [interface  network interface name for capture (defaults to first with an address)
     -f --filter [filter]       packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
     -b --buffer-size [mb]      size in MiB to buffer between libpcap and app (default: 10)
-    --no-color                 disables colors (default: not attached to a tty)
+    -h --hex                   show hex dumps for all packets
+    -j --json                  show JSON dumps for all parsed frames
+    --color                    enables colors if not connected to a tty.
+    --no-color                 disables colors if connected to a tty.
 ```
 
 ## Example
 
-To monitor incoming and outgoing tchannel packets on port 4040 over the loopback interface on a Mac:
+To monitor tchannel traffic on ports 4040 and 4041 over the loopback and first
+ethernet interface on a Mac:
 
 ```
-tcap -i lo0
+tcap -i lo0 -i en0 -p 4040 -p 4041
 ```
+
+Note that the interface names differ on other systems. Use ifconfig.
+
+<!--
+
+    ## Concept and Motivation
+
+    // TODO. Explain what your module achieves and why.
+
+    ## API Documentation
+
+    ### `var someValue = tcap(/*arguments*/)`
+
+    This is a jsig notation of this interface.
+    https://github.com/jsigbiz/spec
+
+    ```ocaml
+    tcap : (arg: Any) => void
+    ```
+
+    // TODO. State what the module does.
+
+-->
 
 ## Installation
 
