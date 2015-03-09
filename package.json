@@ -20,12 +20,12 @@
     }
   ],
   "dependencies": {
-    "pcap": "^2.0.1",
-    "hexer": "^1.2.0",
-    "commander": "^2.6.0",
-    "tchannel": "uber/tchannel#dev_node",
     "chalk": "^1.0.0",
-    "sprintf-js": "^1.0.2"
+    "commander": "^2.6.0",
+    "hexer": "^1.2.0",
+    "pcap": "^2.0.1",
+    "sprintf-js": "^1.0.2",
+    "tchannel": "2.0.0-alpha1"
   },
   "devDependencies": {
     "coveralls": "^2.10.0",
