@@ -26,6 +26,8 @@ var commander = require('commander');
 var TChannelTracker = require('../tchannel-tracker.js');
 var ansi = require('chalk');
 
+module.exports = main;
+
 if (require.main === module) {
     main();
 }
