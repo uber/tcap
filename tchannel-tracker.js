@@ -22,12 +22,10 @@
 
 'use strict';
 
-var stream = require('stream');
 var pcap = require('pcap');
 var util = require('util');
 var ansi = require('chalk');
 var events = require('events');
-var tchannel = require('tchannel/v2');
 var TChannelSessionTracker = require('./tchannel-session-tracker');
 
 module.exports = TChannelTracker;
@@ -92,70 +90,40 @@ function handleTcpSession(tcpSession, iface) {
     var self = this;
     var sessionNumber = self.nextSessionNumber++;
 
-    if (tcpSession.missed_syn) {
-        console.log(
-            ansi.cyan('session missed src=%s --> dst=%s on %s'),
-            tcpSession.src,
-            tcpSession.dst,
-            iface
-        );
-        return;
-    }
-
     console.log(
-        ansi.cyan('session=%s started src=%s --> dst=%s on %s'),
-        sessionNumber,
+        ansi.cyan('session %s src=%s --> dst=%s on %s'),
+        (tcpSession.missed_syn ? "in progress" : "started"),
         tcpSession.src,
         tcpSession.dst,
         iface
     );
 
-    var tchannelSessionTracker = new TChannelSessionTracker({
+    var incomingSessionTracker = new TChannelSessionTracker({
         sessionNumber: sessionNumber,
+        direction: 'incoming',
+        onTrack: !tcpSession.missed_syn,
         tcpSession: tcpSession,
         alwaysShowJson: self.alwaysShowJson,
         alwaysShowHex: self.alwaysShowHex
     });
 
-    var incoming = new stream.PassThrough();
-    var outgoing = new stream.PassThrough();
-
-    var incomingReader = new tchannel.Reader(tchannel.Frame);
-    var outgoingReader = new tchannel.Reader(tchannel.Frame);
-
-    incoming.pipe(incomingReader);
-    outgoing.pipe(outgoingReader);
+    var outgoingSessionTracker = new TChannelSessionTracker({
+        sessionNumber: sessionNumber,
+        direction: 'outgoing',
+        onTrack: !tcpSession.missed_syn,
+        tcpSession: tcpSession,
+        alwaysShowJson: self.alwaysShowJson,
+        alwaysShowHex: self.alwaysShowHex
+    });
 
     tcpSession.on('data send', handleDataSend);
     function handleDataSend(session, chunk) {
-        tchannelSessionTracker.inspectPacket(chunk, 'outgoing');
-        outgoing.write(chunk);
+        outgoingSessionTracker.handlePacket(chunk);
     }
 
     tcpSession.on('data recv', handleDataRecv);
     function handleDataRecv(session, chunk) {
-        tchannelSessionTracker.inspectPacket(chunk, 'incoming');
-        incoming.write(chunk);
-    }
-
-    incomingReader.on('data', handleIncomingData);
-    function handleIncomingData(frame) {
-        tchannelSessionTracker.inspectFrame(frame, 'incoming');
-    }
-
-    outgoingReader.on('data', handleOutgoingData);
-    function handleOutgoingData(frame) {
-        tchannelSessionTracker.inspectFrame(frame, 'outgoing');
-    }
-
-    incomingReader.on('error', handleIncomingError);
-    function handleIncomingError(error) {
-        tchannelSessionTracker.inspectError(error, 'incoming');
-    }
-
-    outgoingReader.on('error', handleOutgoingError);
-    function handleOutgoingError(error) {
-        tchannelSessionTracker.inspectError(error, 'outgoing');
+        incomingSessionTracker.handlePacket(chunk);
     }
 
     tcpSession.once('end', handleSessionEnd);
@@ -170,8 +138,8 @@ function handleTcpSession(tcpSession, iface) {
 
         tcpSession.removeListener('data send', handleDataSend);
         tcpSession.removeListener('data recv', handleDataRecv);
-        incoming.end();
-        outgoing.end();
+        incomingSessionTracker.end();
+        outgoingSessionTracker.end();
     }
 
 };
