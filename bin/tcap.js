@@ -70,7 +70,7 @@ function main(arg) {
         interfaces: commander.interface.length ? commander.interface : [''],
         ports: commander.port,
         filter: commander.filter,
-        alwaysShowJson: commander.json,
+        alwaysShowJson: commander.inspect,
         alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024
     });
