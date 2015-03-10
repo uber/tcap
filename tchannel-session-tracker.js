@@ -221,15 +221,12 @@ function inspectJSON(buf) {
 };
 
 function hex(value) {
-    if (value.length === 0) {
-        return '';
-    } else {
-        return hexer(value, {
-            prefix: '  ',
-            gutter: 4, // maximum frame length is 64k so FFFF
-            renderHuman: renderByte
-        });
-    }
+    return hexer(value, {
+        prefix: '  ',
+        gutter: 4, // maximum frame length is 64k so FFFF
+        renderHuman: renderByte,
+        nullHuman: ansi.black(ansi.bold('empty'))
+    });
 }
 
 function renderByte(c) {
