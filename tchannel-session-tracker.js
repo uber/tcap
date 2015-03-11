@@ -19,6 +19,7 @@
 // THE SOFTWARE.
 /*global console*/
 /*eslint no-console:0 max-statements: [1, 30]*/
+/*jscs:disable disallowKeywords*/
 
 'use strict';
 
@@ -26,6 +27,7 @@ var util = require('util');
 var ansi = require('chalk');
 var hexer = require('hexer');
 var sprintf = require('sprintf-js').sprintf;
+var thriftDecoder = require('./thrift/simple_decoder');
 
 module.exports = TChannelSessionTracker;
 
@@ -187,12 +189,35 @@ function inspectBody(body) {
     self.inspectArgument('arg1', body.arg1);
     self.inspectArgument('arg2', body.arg2);
     self.inspectArgument('arg3', body.arg3);
+    self.inspectThrift(body.arg3) || self.inspectJSON(body.arg3);
 };
 
 TChannelSessionTracker.prototype.inspectArgument =
 function inspectArgument(name, argument) {
     console.log(ansi.yellow(name));
     console.log(hex(argument));
+};
+
+TChannelSessionTracker.prototype.inspectThrift =
+function inspectThrift(buf) {
+    try {
+        var data = thriftDecoder.decode(buf);
+        console.log(ansi.yellow('arg3_as_thrift'));
+        console.log(util.inspect(data, {colors: true, depth: Infinity}));
+        return true;
+    } catch (e) {
+    }
+};
+
+TChannelSessionTracker.prototype.inspectJSON =
+function inspectJSON(buf) {
+    try {
+        var data = JSON.parse(buf.toString('utf8'));
+        console.log(ansi.yellow('arg3_as_json'));
+        console.log(util.inspect(data, {colors: true, depth: Infinity}));
+        return true;
+    } catch (e) {
+    }
 };
 
 function hex(value) {
