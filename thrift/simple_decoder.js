@@ -20,6 +20,8 @@
 
 'use strict';
 
+var ReadBuffer = require('./transport').ReadBuffer;
+
 var TYPE = {
     STOP: 0,
     VOID: 1,
@@ -109,8 +111,7 @@ function read(reader, typeid) {
 }
 
 function decode(buf) {
-    var transport = require('./transport');
-    var reader = new transport.ReadBuffer(buf);
+    var reader = new ReadBuffer(buf);
     var struct = read(reader, TYPE.STRUCT);
     if (!reader.eom()) {
         throw new Error('more data after struct stops');
