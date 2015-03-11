@@ -39,7 +39,7 @@ function TChannelSessionTracker(opts) {
     self.sessionNumber = opts.sessionNumber;
     self.direction = opts.direction;
     self.tcpSession = opts.tcpSession;
-    self.alwaysShowJson = opts.alwaysShowJson;
+    self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
     self.alwaysShowHex = opts.alwaysShowHex;
     self.hexerOptions = opts.hexer || {
         prefix: '  ',
@@ -140,7 +140,7 @@ function handleFrame(frame) {
         type && type.toString(16),
         (self.speculative ? ansi.yellow(' ???') : '')
     )));
-    var showJson = self.alwaysShowJson;
+    var showJson = self.alwaysShowFrameDump;
     self.inspectCommonFrame(frame);
     if (showJson) {
         console.log(ansi.yellow('frame'));
