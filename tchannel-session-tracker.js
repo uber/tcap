@@ -168,17 +168,17 @@ function handleError(error) {
 };
 
 TChannelSessionTracker.prototype.nameByType = {
-    1: 'init request',
-    2: 'init response',
-    3: 'call request',
-    4: 'call response',
-    13: 'request continue',
-    14: 'response continue',
-    c0: 'cancel',
-    c1: 'claim',
-    d0: 'ping request',
-    d1: 'ping response',
-    ff: 'error'
+    '01': 'init request',
+    '02': 'init response',
+    '03': 'call request',
+    '04': 'call response',
+    '13': 'request continue',
+    '14': 'response continue',
+    'c0': 'cancel',
+    'c1': 'claim',
+    'd0': 'ping request',
+    'd1': 'ping response',
+    'ff': 'error'
 };
 
 TChannelSessionTracker.prototype.inspectCommonFrame =
@@ -206,8 +206,9 @@ function inspectBanner(body, frame) {
     var parts = [];
 
     // type, e.g., CALL REQUEST
-    if (this.nameByType[body.type]) {
-        parts.push(this.nameByType[body.type].toUpperCase());
+    var type = sprintf('%02x', body.type);
+    if (this.nameByType[type]) {
+        parts.push(this.nameByType[type].toUpperCase());
     } else {
         parts.push(ansi.red(sprintf(
             'UNRECOGNIZED FRAME TYPE %d',
