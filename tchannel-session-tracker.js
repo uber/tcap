@@ -28,8 +28,8 @@ var ansi = require('chalk');
 var stream = require('stream');
 var hexer = require('hexer');
 var sprintf = require('sprintf-js').sprintf;
-var tchannel = require('tchannel/v2');
 var thriftDecoder = require('./thrift/simple_decoder');
+var v2 = require('tchannel/v2');
 
 module.exports = TChannelSessionTracker;
 
@@ -41,8 +41,14 @@ function TChannelSessionTracker(opts) {
     self.tcpSession = opts.tcpSession;
     self.alwaysShowJson = opts.alwaysShowJson;
     self.alwaysShowHex = opts.alwaysShowHex;
+    self.hexerOptions = opts.hexer || {
+        prefix: '  ',
+        gutter: 4, // maximum frame length is 64k so FFFF
+        renderHuman: renderByte,
+        nullHuman: ansi.black(ansi.bold('empty'))
+    };
     self.parser = null;
-    self.speculative = null;
+    self.speculative = false;
     if (opts.onTrack) {
         self.startTracking(false);
     }
@@ -52,7 +58,7 @@ TChannelSessionTracker.prototype.startTracking =
 function startTracking(speculative) {
     var self = this;
     self.buffer = new stream.PassThrough();
-    self.parser = new tchannel.Reader(tchannel.Frame);
+    self.parser = new v2.Reader(v2.Frame);
     self.buffer.pipe(self.parser);
 
     self.tracking = true;
@@ -99,7 +105,7 @@ function handlePacket(packet) {
             self.tcpSession.dst,
             self.packetNumber++
         )));
-        console.log(hex(packet, {prefix: '  '}));
+        console.log(hexer(packet, self.hexerOptions));
         console.log('');
     }
     if (!self.tracking) {
@@ -114,15 +120,6 @@ TChannelSessionTracker.prototype.handleUntrackedPacket =
 function handleUntrackedPacket(packet) {
     var self = this;
     self.startTracking(true);
-
-    console.log(ansi.yellow(sprintf(
-        'session=%d %s %s %s packet=%s not tracked',
-        self.sessionNumber,
-        self.tcpSession.src,
-        (self.direction === 'outgoing' ? '-->' : '<--'),
-        self.tcpSession.dst,
-        self.packetNumber++
-    )));
 };
 
 TChannelSessionTracker.prototype.handleFrame =
@@ -144,11 +141,7 @@ function handleFrame(frame) {
         (self.speculative ? ansi.yellow(' ???') : '')
     )));
     var showJson = self.alwaysShowJson;
-    if (self.inspectByType[type]) {
-        showJson = showJson || self[self.inspectByType[type]](frame);
-    } else {
-        showJson = true;
-    }
+    self.inspectCommonFrame(frame);
     if (showJson) {
         console.log(ansi.yellow('frame'));
         console.log(util.inspect(frame, {colors: ansi.enabled}));
@@ -168,76 +161,102 @@ function handleError(error) {
         error.name
     )));
     console.log(ansi.red(error.message));
-    console.log(hex(error.buffer));
+    console.log(hexer(error.buffer, self.hexerOptions));
     console.log('');
 
     self.stopTracking();
 };
 
-TChannelSessionTracker.prototype.inspectByType = {
-    1: 'inspectInitRequest',
-    2: 'inspectInitResponse',
-    3: 'inspectCallRequest',
-    4: 'inspectCallResponse'
-    // 13: 'inspectRequestContinue',
-    // 14: 'inspectResponseContinue',
-    // c0: 'inspectCancel',
-    // c1: 'inspectClaim',
-    // d0: 'inspectPingRequest',
-    // d1: 'inspectPingResponse',
-    // ff: 'inspectError'
+TChannelSessionTracker.prototype.nameByType = {
+    1: 'init request',
+    2: 'init response',
+    3: 'call request',
+    4: 'call response',
+    13: 'request continue',
+    14: 'response continue',
+    c0: 'cancel',
+    c1: 'claim',
+    d0: 'ping request',
+    d1: 'ping response',
+    ff: 'error'
 };
 
-TChannelSessionTracker.prototype.inspectInitRequest =
-function inspectInitRequest(frame) {
+TChannelSessionTracker.prototype.inspectCommonFrame =
+function inspectCommonFrame(frame) {
     var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'INIT REQUEST version=%s',
-        body.version
-    ));
-    self.inspectHeaders(body.headers);
-};
-
-TChannelSessionTracker.prototype.inspectInitResponse =
-function inspectInitResponse(frame) {
-    var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'INIT RESPONSE version=%s',
-        body.version
-    ));
-    self.inspectHeaders(body.headers);
-};
-
-TChannelSessionTracker.prototype.inspectCallRequest =
-function inspectCallRequest(frame) {
-    var self = this;
-    var body = frame.body;
-    var service = JSON.stringify(body.service.toString('utf8'));
-    if (!body.service.length) {
-        service = ansi.red(service);
+    if (!frame.body) {
+        console.log(ansi.yellow(sprintf(
+            'unexpected shape'
+        )));
+        // TODO unexpected frame shape
+        return;
     }
-    console.log(sprintf(
-        'CALL REQUEST service=%s ttl=%s flags=0x%02x',
-        service,
-        body.ttl,
-        body.flags
-    ));
-    self.inspectHeaders(body.headers);
-    self.inspectBody(body);
-};
+    self.inspectBanner(frame.body, frame);
+    self.inspectHeaders(frame.body.headers);
+    self.inspectBody(frame.body);
+}
 
-TChannelSessionTracker.prototype.inspectCallResponse =
-function inspectCallResponse(frame) {
+TChannelSessionTracker.prototype.inspectBanner =
+function inspectBanner(body, frame) {
     var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'CALL RESPONSE flags=0x%02x',
-        body.flags
-    ));
-    self.inspectHeaders(body.headers);
-    self.inspectBody(body);
+    if (!body) {
+        // TODO
+        return;
+    }
+    var parts = [];
+
+    // type, e.g., CALL REQUEST
+    if (this.nameByType[body.type]) {
+        parts.push(this.nameByType[body.type].toUpperCase());
+    } else {
+        parts.push(ansi.red(sprintf(
+            'UNRECOGNIZED FRAME TYPE %d',
+            body.type
+        )));
+    }
+
+    if (typeof frame.id === 'number') {
+        parts.push(sprintf('id=0x%04x (%d)', frame.id, frame.id));
+    }
+
+    // e.g., version=2
+    if (body.version) {
+        parts.push(sprintf('version=%d', body.version));
+    }
+
+    // e.g., service="teapot"
+    if (body.service !== undefined) {
+        var service = JSON.stringify(body.service.toString('utf8'));
+        if (!body.service.length) {
+            service = ansi.red(service);
+        }
+        parts.push(sprintf('service=%s', service));
+    }
+
+    // e.g., flags=0x01 continued
+    if (body.flags !== undefined) {
+        parts.push(sprintf('flags=0x%02x', body.flags));
+    }
+    if (body.flags) {
+        if (body.flags & 0x01) {
+            parts.push('continued');
+        }
+    }
+
+    // e.g., ttl=60
+    if (body.ttl) {
+        parts.push(sprintf('ttl=0x%04x (%d)', body.ttl, body.ttl));
+    }
+
+    if (body.tracing) {
+        // TODO
+    }
+
+    if (body.csum) {
+        // TODO
+    }
+
+    console.log(parts.join(' '));
 };
 
 TChannelSessionTracker.prototype.inspectHeaders =
@@ -257,16 +276,26 @@ function inspectHeaders(headers) {
 TChannelSessionTracker.prototype.inspectBody =
 function inspectBody(body) {
     var self = this;
+    if (!body) {
+        return;
+    }
     self.inspectArgument('arg1', body.arg1);
     self.inspectArgument('arg2', body.arg2);
     self.inspectArgument('arg3', body.arg3);
     self.inspectThrift(body.arg3) || self.inspectJSON(body.arg3);
+    if (body.flags & 0x01) {
+        console.log(ansi.yellow('to be continued...'));
+    }
 };
 
 TChannelSessionTracker.prototype.inspectArgument =
 function inspectArgument(name, argument) {
+    var self = this;
+    if (!argument) {
+        return;
+    }
     console.log(ansi.yellow(name));
-    console.log(hex(argument));
+    console.log(hexer(argument, self.hexerOptions));
 };
 
 TChannelSessionTracker.prototype.inspectThrift =
@@ -290,15 +319,6 @@ function inspectJSON(buf) {
     } catch (e) {
     }
 };
-
-function hex(value) {
-    return hexer(value, {
-        prefix: '  ',
-        gutter: 4, // maximum frame length is 64k so FFFF
-        renderHuman: renderByte,
-        nullHuman: ansi.black(ansi.bold('empty'))
-    });
-}
 
 function renderByte(c) {
     if (c > 0x1f && c < 0x7f) {
