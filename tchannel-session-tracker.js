@@ -198,6 +198,7 @@ function inspectCommonFrame(frame) {
 
 TChannelSessionTracker.prototype.inspectBanner =
 function inspectBanner(body, frame) {
+    var self = this;
     if (!body) {
         // TODO
         return;
@@ -205,7 +206,7 @@ function inspectBanner(body, frame) {
     var parts = [];
 
     // type, e.g., CALL REQUEST
-    addName(parts, body);
+    self.addFrameTypeName(parts, body);
 
     if (typeof frame.id === 'number') {
         parts.push(sprintf('id=0x%04x (%d)', frame.id, frame.id));
@@ -216,7 +217,7 @@ function inspectBanner(body, frame) {
         parts.push(sprintf('version=%d', body.version));
     }
 
-    addServiceName(parts, body);
+    self.addServiceName(parts, body);
 
     // e.g., flags=0x01 continued
     if (body.flags !== undefined) {
@@ -244,18 +245,21 @@ function inspectBanner(body, frame) {
     console.log(parts.join(' '));
 };
 
-function addName(parts, body) {
+TChannelSessionTracker.prototype.addFrameTypeName =
+function addFrameTypeName(parts, body) {
+    var self = this;
     var type = sprintf('%02x', body.type);
-    if (this.nameByType[type]) {
-        parts.push(this.nameByType[type].toUpperCase());
+    if (self.nameByType[type]) {
+        parts.push(self.nameByType[type].toUpperCase());
     } else {
         parts.push(ansi.red(sprintf(
             'UNRECOGNIZED FRAME TYPE %d',
             body.type
         )));
     }
-}
+};
 
+TChannelSessionTracker.prototype.addServiceName =
 function addServiceName(parts, body) {
     // e.g., service="teapot"
     if (body.service !== undefined) {
@@ -265,8 +269,7 @@ function addServiceName(parts, body) {
         }
         parts.push(sprintf('service=%s', service));
     }
-
-}
+};
 
 TChannelSessionTracker.prototype.inspectHeaders =
 function inspectHeaders(headers) {
