@@ -91,7 +91,7 @@ TChannelSessionTracker.prototype.end =
 function end() {
     var self = this;
     self.stopTracking();
-}
+};
 
 TChannelSessionTracker.prototype.handlePacket =
 function handlePacket(packet) {
@@ -194,11 +194,10 @@ function inspectCommonFrame(frame) {
     self.inspectBanner(frame.body, frame);
     self.inspectHeaders(frame.body.headers);
     self.inspectBody(frame.body);
-}
+};
 
 TChannelSessionTracker.prototype.inspectBanner =
 function inspectBanner(body, frame) {
-    var self = this;
     if (!body) {
         // TODO
         return;
@@ -206,15 +205,7 @@ function inspectBanner(body, frame) {
     var parts = [];
 
     // type, e.g., CALL REQUEST
-    var type = sprintf('%02x', body.type);
-    if (this.nameByType[type]) {
-        parts.push(this.nameByType[type].toUpperCase());
-    } else {
-        parts.push(ansi.red(sprintf(
-            'UNRECOGNIZED FRAME TYPE %d',
-            body.type
-        )));
-    }
+    addName(parts, body);
 
     if (typeof frame.id === 'number') {
         parts.push(sprintf('id=0x%04x (%d)', frame.id, frame.id));
@@ -225,14 +216,7 @@ function inspectBanner(body, frame) {
         parts.push(sprintf('version=%d', body.version));
     }
 
-    // e.g., service="teapot"
-    if (body.service !== undefined) {
-        var service = JSON.stringify(body.service.toString('utf8'));
-        if (!body.service.length) {
-            service = ansi.red(service);
-        }
-        parts.push(sprintf('service=%s', service));
-    }
+    addServiceName(parts, body);
 
     // e.g., flags=0x01 continued
     if (body.flags !== undefined) {
@@ -249,16 +233,40 @@ function inspectBanner(body, frame) {
         parts.push(sprintf('ttl=0x%04x (%d)', body.ttl, body.ttl));
     }
 
-    if (body.tracing) {
-        // TODO
-    }
+    // if (body.tracing) {
+    //     // TODO
+    // }
 
-    if (body.csum) {
-        // TODO
-    }
+    // if (body.csum) {
+    //     // TODO
+    // }
 
     console.log(parts.join(' '));
 };
+
+function addName(parts, body) {
+    var type = sprintf('%02x', body.type);
+    if (this.nameByType[type]) {
+        parts.push(this.nameByType[type].toUpperCase());
+    } else {
+        parts.push(ansi.red(sprintf(
+            'UNRECOGNIZED FRAME TYPE %d',
+            body.type
+        )));
+    }
+}
+
+function addServiceName(parts, body) {
+    // e.g., service="teapot"
+    if (body.service !== undefined) {
+        var service = JSON.stringify(body.service.toString('utf8'));
+        if (!body.service.length) {
+            service = ansi.red(service);
+        }
+        parts.push(sprintf('service=%s', service));
+    }
+
+}
 
 TChannelSessionTracker.prototype.inspectHeaders =
 function inspectHeaders(headers) {
@@ -283,7 +291,9 @@ function inspectBody(body) {
     self.inspectArgument('arg1', body.arg1);
     self.inspectArgument('arg2', body.arg2);
     self.inspectArgument('arg3', body.arg3);
-    self.inspectThrift(body.arg3) || self.inspectJSON(body.arg3);
+    if (!self.inspectThrift(body.arg3)) {
+        self.inspectJSON(body.arg3);
+    }
     if (body.flags & 0x01) {
         console.log(ansi.yellow('to be continued...'));
     }

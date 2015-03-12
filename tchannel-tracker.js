@@ -93,7 +93,7 @@ function handleTcpSession(tcpSession, iface) {
     console.log(
         ansi.cyan('session=%s %s src=%s --> dst=%s on %s'),
         sessionNumber,
-        (tcpSession.missed_syn ? "in progress" : "started"),
+        (tcpSession.missed_syn ? 'in progress' : 'started'),
         tcpSession.src,
         tcpSession.dst,
         iface
