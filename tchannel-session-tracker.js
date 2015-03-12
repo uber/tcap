@@ -25,9 +25,11 @@
 
 var util = require('util');
 var ansi = require('chalk');
+var stream = require('stream');
 var hexer = require('hexer');
 var sprintf = require('sprintf-js').sprintf;
 var thriftDecoder = require('./thrift/simple_decoder');
+var v2 = require('tchannel/v2');
 
 module.exports = TChannelSessionTracker;
 
@@ -35,30 +37,93 @@ function TChannelSessionTracker(opts) {
     var self = this;
     self.packetNumber = 0;
     self.sessionNumber = opts.sessionNumber;
+    self.direction = opts.direction;
     self.tcpSession = opts.tcpSession;
-    self.alwaysShowJson = opts.alwaysShowJson;
+    self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
     self.alwaysShowHex = opts.alwaysShowHex;
+    self.hexerOptions = opts.hexer || {
+        prefix: '  ',
+        gutter: 4, // maximum frame length is 64k so FFFF
+        renderHuman: renderByte,
+        nullHuman: ansi.black(ansi.bold('empty'))
+    };
+    self.parser = null;
+    self.speculative = false;
+    if (opts.onTrack) {
+        self.startTracking(false);
+    }
 }
 
-TChannelSessionTracker.prototype.inspectPacket =
-function inspectPacket(packet, direction) {
+TChannelSessionTracker.prototype.startTracking =
+function startTracking(speculative) {
+    var self = this;
+    self.buffer = new stream.PassThrough();
+    self.parser = new v2.Reader(v2.Frame);
+    self.buffer.pipe(self.parser);
+
+    self.tracking = true;
+    self.speculative = speculative;
+
+    self.parser.on('data', handleFrame);
+    function handleFrame(frame) {
+        self.handleFrame(frame);
+    }
+
+    self.parser.on('error', handleError);
+    function handleError(error) {
+        self.handleError(error);
+    }
+};
+
+TChannelSessionTracker.prototype.stopTracking =
+function stopTracking() {
+    var self = this;
+    if (!self.tracking) {
+        return;
+    }
+    self.buffer.end();
+    self.tracking = false;
+    self.parser = null;
+    self.buffer = null;
+};
+
+TChannelSessionTracker.prototype.end =
+function end() {
+    var self = this;
+    self.stopTracking();
+}
+
+TChannelSessionTracker.prototype.handlePacket =
+function handlePacket(packet) {
     var self = this;
     if (self.alwaysShowHex) {
         console.log(ansi.cyan(sprintf(
             'session=%d %s %s %s packet=%s',
             self.sessionNumber,
             self.tcpSession.src,
-            (direction === 'outgoing' ? '-->' : '<--'),
+            (self.direction === 'outgoing' ? '-->' : '<--'),
             self.tcpSession.dst,
             self.packetNumber++
         )));
-        console.log(hex(packet, {prefix: '  '}));
+        console.log(hexer(packet, self.hexerOptions));
         console.log('');
+    }
+    if (!self.tracking) {
+        self.handleUntrackedPacket(packet);
+    }
+    if (self.buffer) {
+        self.buffer.write(packet);
     }
 };
 
-TChannelSessionTracker.prototype.inspectFrame =
-function inspectFrame(frame, direction) {
+TChannelSessionTracker.prototype.handleUntrackedPacket =
+function handleUntrackedPacket(packet) {
+    var self = this;
+    self.startTracking(true);
+};
+
+TChannelSessionTracker.prototype.handleFrame =
+function handleFrame(frame) {
     var self = this;
     var type =
         frame &&
@@ -66,20 +131,17 @@ function inspectFrame(frame, direction) {
         frame.body.type &&
         frame.body.type.toString(16);
     console.log(ansi.green(sprintf(
-        'session=%d %s %s %s frame=%d type=0x%02x',
+        'session=%d %s %s %s frame=%d type=0x%02x%s',
         self.sessionNumber,
         self.tcpSession.src,
-        (direction === 'outgoing' ? '-->' : '<--'),
+        (self.direction === 'outgoing' ? '-->' : '<--'),
         self.tcpSession.dst,
-        frame.id,
-        type.toString(16)
+        frame && frame.id,
+        type && type.toString(16),
+        (self.speculative ? ansi.yellow(' ???') : '')
     )));
-    var showJson = self.alwaysShowJson;
-    if (self.byType[type]) {
-        self[self.byType[type]](frame, direction);
-    } else {
-        showJson = true;
-    }
+    var showJson = self.alwaysShowFrameDump;
+    self.inspectCommonFrame(frame);
     if (showJson) {
         console.log(ansi.yellow('frame'));
         console.log(util.inspect(frame, {colors: ansi.enabled}));
@@ -87,86 +149,115 @@ function inspectFrame(frame, direction) {
     console.log('');
 };
 
-TChannelSessionTracker.prototype.inspectError =
-function inspectError(error, direction) {
+TChannelSessionTracker.prototype.handleError =
+function handleError(error) {
     var self = this;
     console.log(ansi.red(sprintf(
-        'session=%d %s %s %s error %s',
+        'session=%d %s %s %s frame parse error %s',
         self.sessionNumber,
         self.tcpSession.src,
-        (direction === 'outgoing' ? '-->' : '<--'),
+        (self.direction === 'outgoing' ? '-->' : '<--'),
         self.tcpSession.dst,
         error.name
     )));
     console.log(ansi.red(error.message));
-    console.log(hex(error.buffer));
+    console.log(hexer(error.buffer, self.hexerOptions));
     console.log('');
+
+    self.stopTracking();
 };
 
-TChannelSessionTracker.prototype.byType = {
-    1: 'inspectInitRequest',
-    2: 'inspectInitResponse',
-    3: 'inspectCallRequest',
-    4: 'inspectCallResponse'
-    // 13: 'inspectRequestContinue',
-    // 14: 'inspectResponseContinue',
-    // c0: 'inspectCancel',
-    // c1: 'inspectClaim',
-    // d0: 'inspectPingRequest',
-    // d1: 'inspectPingResponse',
-    // ff: 'inspectError'
+TChannelSessionTracker.prototype.nameByType = {
+    '01': 'init request',
+    '02': 'init response',
+    '03': 'call request',
+    '04': 'call response',
+    '13': 'request continue',
+    '14': 'response continue',
+    'c0': 'cancel',
+    'c1': 'claim',
+    'd0': 'ping request',
+    'd1': 'ping response',
+    'ff': 'error'
 };
 
-TChannelSessionTracker.prototype.inspectInitRequest =
-function inspectInitRequest(frame) {
+TChannelSessionTracker.prototype.inspectCommonFrame =
+function inspectCommonFrame(frame) {
     var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'INIT REQUEST version=%s',
-        body.version
-    ));
-    self.inspectHeaders(body.headers);
-};
-
-TChannelSessionTracker.prototype.inspectInitResponse =
-function inspectInitResponse(frame) {
-    var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'INIT RESPONSE version=%s',
-        body.version
-    ));
-    self.inspectHeaders(body.headers);
-};
-
-TChannelSessionTracker.prototype.inspectCallRequest =
-function inspectCallRequest(frame) {
-    var self = this;
-    var body = frame.body;
-    var service = JSON.stringify(body.service.toString('utf8'));
-    if (!body.service.length) {
-        service = ansi.red(service);
+    if (!frame.body) {
+        console.log(ansi.yellow(sprintf(
+            'unexpected shape'
+        )));
+        // TODO unexpected frame shape
+        return;
     }
-    console.log(sprintf(
-        'CALL REQUEST service=%s ttl=%s flags=0x%02x',
-        service,
-        body.ttl,
-        body.flags
-    ));
-    self.inspectHeaders(body.headers);
-    self.inspectBody(body);
-};
+    self.inspectBanner(frame.body, frame);
+    self.inspectHeaders(frame.body.headers);
+    self.inspectBody(frame.body);
+}
 
-TChannelSessionTracker.prototype.inspectCallResponse =
-function inspectCallResponse(frame) {
+TChannelSessionTracker.prototype.inspectBanner =
+function inspectBanner(body, frame) {
     var self = this;
-    var body = frame.body;
-    console.log(sprintf(
-        'CALL RESPONSE flags=0x%02x',
-        body.flags
-    ));
-    self.inspectHeaders(body.headers);
-    self.inspectBody(body);
+    if (!body) {
+        // TODO
+        return;
+    }
+    var parts = [];
+
+    // type, e.g., CALL REQUEST
+    var type = sprintf('%02x', body.type);
+    if (this.nameByType[type]) {
+        parts.push(this.nameByType[type].toUpperCase());
+    } else {
+        parts.push(ansi.red(sprintf(
+            'UNRECOGNIZED FRAME TYPE %d',
+            body.type
+        )));
+    }
+
+    if (typeof frame.id === 'number') {
+        parts.push(sprintf('id=0x%04x (%d)', frame.id, frame.id));
+    }
+
+    // e.g., version=2
+    if (body.version) {
+        parts.push(sprintf('version=%d', body.version));
+    }
+
+    // e.g., service="teapot"
+    if (body.service !== undefined) {
+        var service = JSON.stringify(body.service.toString('utf8'));
+        if (!body.service.length) {
+            service = ansi.red(service);
+        }
+        parts.push(sprintf('service=%s', service));
+    }
+
+    // e.g., flags=0x01 continued
+    if (body.flags !== undefined) {
+        parts.push(sprintf('flags=0x%02x', body.flags));
+    }
+    if (body.flags) {
+        if (body.flags & 0x01) {
+            parts.push('continued');
+        }
+    }
+
+    // e.g., ttl=60
+    if (body.ttl) {
+        parts.push(sprintf('ttl=0x%04x (%d)', body.ttl, body.ttl));
+    }
+
+    if (body.tracing) {
+        // TODO
+    }
+
+    if (body.csum) {
+        // TODO
+    }
+
+    console.log(parts.join(' '));
 };
 
 TChannelSessionTracker.prototype.inspectHeaders =
@@ -186,23 +277,33 @@ function inspectHeaders(headers) {
 TChannelSessionTracker.prototype.inspectBody =
 function inspectBody(body) {
     var self = this;
+    if (!body) {
+        return;
+    }
     self.inspectArgument('arg1', body.arg1);
     self.inspectArgument('arg2', body.arg2);
     self.inspectArgument('arg3', body.arg3);
     self.inspectThrift(body.arg3) || self.inspectJSON(body.arg3);
+    if (body.flags & 0x01) {
+        console.log(ansi.yellow('to be continued...'));
+    }
 };
 
 TChannelSessionTracker.prototype.inspectArgument =
 function inspectArgument(name, argument) {
+    var self = this;
+    if (!argument) {
+        return;
+    }
     console.log(ansi.yellow(name));
-    console.log(hex(argument));
+    console.log(hexer(argument, self.hexerOptions));
 };
 
 TChannelSessionTracker.prototype.inspectThrift =
 function inspectThrift(buf) {
     try {
         var data = thriftDecoder.decode(buf);
-        console.log(ansi.yellow('arg3_as_thrift'));
+        console.log(ansi.yellow('arg3 as thrift'));
         console.log(util.inspect(data, {colors: true, depth: Infinity}));
         return true;
     } catch (e) {
@@ -213,24 +314,12 @@ TChannelSessionTracker.prototype.inspectJSON =
 function inspectJSON(buf) {
     try {
         var data = JSON.parse(buf.toString('utf8'));
-        console.log(ansi.yellow('arg3_as_json'));
+        console.log(ansi.yellow('arg3 as json'));
         console.log(util.inspect(data, {colors: true, depth: Infinity}));
         return true;
     } catch (e) {
     }
 };
-
-function hex(value) {
-    if (value.length === 0) {
-        return '';
-    } else {
-        return hexer(value, {
-            prefix: '  ',
-            gutter: 4, // maximum frame length is 64k so FFFF
-            renderHuman: renderByte
-        });
-    }
-}
 
 function renderByte(c) {
     if (c > 0x1f && c < 0x7f) {
