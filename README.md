@@ -60,6 +60,12 @@ Note that the interface names differ on other systems. Use ifconfig.
 
 ## Installation
 
+On Linux, ensure that the libpcap headers are available to the build toolchain. On Debian or Ubuntu:
+
+`sudo apt-get install libpcap-dev`
+
+Install tcap either in your project, or globally as depicted:
+
 `npm install uber/tcap -g`
 
 ## Tests
