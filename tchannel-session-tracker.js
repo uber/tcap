@@ -252,13 +252,9 @@ function inspectBanner(body, frame) {
         parts.push(sprintf('ttl=0x%04x (%d)', body.ttl, body.ttl));
     }
 
-    // if (body.tracing) {
-    //     // TODO
-    // }
-
-    // if (body.csum) {
-    //     // TODO
-    // }
+    if (body.csum) {
+        self.addCsum(parts, body.csum);
+    }
 
     console.log(parts.join(' '));
 };
@@ -286,6 +282,20 @@ function addServiceName(parts, body) {
             service = ansi.red(service);
         }
         parts.push(sprintf('service=%s', service));
+    }
+};
+
+TChannelSessionTracker.prototype.addCsum =
+function addCsum(parts, csum) {
+    if (csum.type === 0x00) {
+        parts.push(sprintf('csum=none'));
+    } else if (csum.type === 0x01) {
+        parts.push(sprintf('csum=%04x (crc32 unverified)', csum.val));
+    } else if (csum.type === 0x02) {
+        parts.push(sprintf(
+            'csum=%04x (farmhash Fingerprint32 unverified)',
+            csum.val
+        ));
     }
 };
 
