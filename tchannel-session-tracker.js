@@ -193,7 +193,25 @@ function inspectCommonFrame(frame) {
     }
     self.inspectBanner(frame.body, frame);
     self.inspectHeaders(frame.body.headers);
+    self.inspectTracing(frame.body.tracing);
     self.inspectBody(frame.body);
+};
+
+TChannelSessionTracker.prototype.inspectTracing =
+function inspectTracing(tracing) {
+    if (tracing) {
+        var spanid = tracing.slice(0, 7);
+        var parentid = tracing.slice(8, 15);
+        var traceid = tracing.slice(16, 23);
+        var traceflags = tracing.slice(24, 25);
+
+        console.log(
+            'tracing: spanid: ' + spanid.toString('hex') + ' ' +
+            'parentid: ' + parentid.toString('hex') + ' ' +
+            'traceid: ' + traceid.toString('hex') + ' ' +
+            'traceflags: ' + traceflags.toString('hex')
+        );
+    }
 };
 
 TChannelSessionTracker.prototype.inspectBanner =
