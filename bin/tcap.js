@@ -29,10 +29,10 @@ var ansi = require('chalk');
 module.exports = main;
 
 if (require.main === module) {
-    main();
+    main(process.argv);
 }
 
-function main(arg) {
+function main(argv) {
 
     function collect(x, xs) {
         xs.push(x);
@@ -60,7 +60,7 @@ function main(arg) {
             'enables colors if not connected to a tty.')
         .option('--no-color',
             'disables colors if connected to a tty.')
-        .parse(process.argv);
+        .parse(argv);
 
     var bufferSizeMb = commander.bufferSize || 10;
 

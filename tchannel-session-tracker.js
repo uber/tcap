@@ -30,6 +30,8 @@ var hexer = require('hexer');
 var sprintf = require('sprintf-js').sprintf;
 var thriftDecoder = require('./thrift/simple_decoder');
 var v2 = require('tchannel/v2');
+var bufrw = require('bufrw');
+var ChunkReader = require('bufrw/stream/chunk_reader');
 
 module.exports = TChannelSessionTracker;
 
@@ -58,18 +60,20 @@ TChannelSessionTracker.prototype.startTracking =
 function startTracking(speculative) {
     var self = this;
     self.buffer = new stream.PassThrough();
-    self.parser = new v2.Reader(v2.Frame);
-    self.buffer.pipe(self.parser);
+
+    self.reader = new ChunkReader(bufrw.UInt16BE, v2.Frame.RW);
+
+    self.buffer.pipe(self.reader);
 
     self.tracking = true;
     self.speculative = speculative;
 
-    self.parser.on('data', handleFrame);
+    self.reader.on('data', handleFrame);
     function handleFrame(frame) {
         self.handleFrame(frame);
     }
 
-    self.parser.on('error', handleError);
+    self.reader.on('error', handleError);
     function handleError(error) {
         self.handleError(error);
     }
