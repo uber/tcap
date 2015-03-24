@@ -157,16 +157,19 @@ TChannelSessionTracker.prototype.handleError =
 function handleError(error) {
     var self = this;
     console.log(ansi.red(sprintf(
-        'session=%d %s %s %s frame parse error %s',
+        'session=%d %s %s %s frame parse error',
         self.sessionNumber,
         self.tcpSession.src,
         (self.direction === 'outgoing' ? '-->' : '<--'),
-        self.tcpSession.dst,
-        error.name
+        self.tcpSession.dst
     )));
-    console.log(ansi.red(error.message));
-    console.log(hexer(error.buffer, self.hexerOptions));
-    console.log('');
+    console.log(bufrw.formatError(error, {
+        color: true,
+        markColor: function markColor(str) {
+            return ansi.red.bold(str);
+        },
+        hexerOptions: self.hexerOptions
+    }));
 
     self.stopTracking();
 };
