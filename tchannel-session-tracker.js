@@ -320,12 +320,15 @@ function inspectBody(body) {
     if (!body) {
         return;
     }
-    self.inspectArgument('arg1', body.arg1);
-    self.inspectArgument('arg2', body.arg2);
-    self.inspectArgument('arg3', body.arg3);
-    if (!self.inspectThrift(body.arg3)) {
-        self.inspectJSON(body.arg3);
+    if (body.args) {
+        for (var i = 0; i < body.args.length; i++) {
+            self.inspectArgument('args[' + i + ']', body.args[i]);
+        }
     }
+    // TODO: bring back/
+    // if (!self.inspectThrift(body.arg3)) {
+    //     self.inspectJSON(body.arg3);
+    // }
     if (body.flags & 0x01) {
         console.log(ansi.yellow('to be continued...'));
     }
