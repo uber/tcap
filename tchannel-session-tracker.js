@@ -132,8 +132,7 @@ function handleFrame(frame) {
     var type =
         frame &&
         frame.body &&
-        frame.body.type &&
-        frame.body.type.toString(16);
+        frame.body.type;
     console.log(ansi.green(sprintf(
         'session=%d %s %s %s frame=%d type=0x%02x%s',
         self.sessionNumber,
@@ -141,7 +140,7 @@ function handleFrame(frame) {
         (self.direction === 'outgoing' ? '-->' : '<--'),
         self.tcpSession.dst,
         frame && frame.id,
-        type && type.toString(16),
+        type,
         (self.speculative ? ansi.yellow(' ???') : '')
     )));
     var showJson = self.alwaysShowFrameDump;
@@ -207,16 +206,11 @@ function inspectCommonFrame(frame) {
 TChannelSessionTracker.prototype.inspectTracing =
 function inspectTracing(tracing) {
     if (tracing) {
-        var spanid = tracing.slice(0, 7);
-        var parentid = tracing.slice(8, 15);
-        var traceid = tracing.slice(16, 23);
-        var traceflags = tracing.slice(24, 25);
-
         console.log(
-            'tracing: spanid: ' + spanid.toString('hex') + ' ' +
-            'parentid: ' + parentid.toString('hex') + ' ' +
-            'traceid: ' + traceid.toString('hex') + ' ' +
-            'traceflags: ' + traceflags.toString('hex')
+            'tracing: spanid: ' + tracing.spanid.toString('hex') + ' ' +
+            'parentid: ' + tracing.parentid.toString('hex') + ' ' +
+            'traceid: ' + tracing.traceid.toString('hex') + ' ' +
+            'traceflags: ' + tracing.flags.toString(16)
         );
     }
 };
@@ -326,12 +320,15 @@ function inspectBody(body) {
     if (!body) {
         return;
     }
-    self.inspectArgument('arg1', body.arg1);
-    self.inspectArgument('arg2', body.arg2);
-    self.inspectArgument('arg3', body.arg3);
-    if (!self.inspectThrift(body.arg3)) {
-        self.inspectJSON(body.arg3);
+    if (body.args) {
+        for (var i = 0; i < body.args.length; i++) {
+            self.inspectArgument('args[' + i + ']', body.args[i]);
+        }
     }
+    // TODO: bring back/
+    // if (!self.inspectThrift(body.arg3)) {
+    //     self.inspectJSON(body.arg3);
+    // }
     if (body.flags & 0x01) {
         console.log(ansi.yellow('to be continued...'));
     }
