@@ -132,8 +132,7 @@ function handleFrame(frame) {
     var type =
         frame &&
         frame.body &&
-        frame.body.type &&
-        frame.body.type.toString(16);
+        frame.body.type;
     console.log(ansi.green(sprintf(
         'session=%d %s %s %s frame=%d type=0x%02x%s',
         self.sessionNumber,
@@ -141,7 +140,7 @@ function handleFrame(frame) {
         (self.direction === 'outgoing' ? '-->' : '<--'),
         self.tcpSession.dst,
         frame && frame.id,
-        type && type.toString(16),
+        type,
         (self.speculative ? ansi.yellow(' ???') : '')
     )));
     var showJson = self.alwaysShowFrameDump;
