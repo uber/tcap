@@ -26,7 +26,7 @@
     "hexer": "^1.3.5",
     "pcap": "^2.0.1",
     "sprintf-js": "^1.0.2",
-    "tchannel": "2.0.0-alpha3"
+    "tchannel": "^2.0.0-beta1"
   },
   "devDependencies": {
     "coveralls": "^2.10.0",
