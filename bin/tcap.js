@@ -48,6 +48,9 @@ function main(argv) {
         .option('-f --filter <filter>',
             'packet filter in pcap-filter(7) syntax ' +
             '(default: all TCP packets on port 4040)')
+        .option('-s --service <service-name>',
+            'service name or names to show ' +
+            '(default: all services shown)', collect, [])
         .option('-b --buffer-size <mb>',
             'size in MiB to buffer between libpcap and app ' +
             '(default: 10)')
@@ -70,6 +73,7 @@ function main(argv) {
         interfaces: commander.interface.length ? commander.interface : [''],
         ports: commander.port,
         filter: commander.filter,
+        serviceNames: commander.service.length ? commander.service : null,
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024

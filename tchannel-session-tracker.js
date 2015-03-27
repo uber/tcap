@@ -39,6 +39,7 @@ function TChannelSessionTracker(opts) {
     var self = this;
     self.packetNumber = 0;
     self.sessionNumber = opts.sessionNumber;
+    self.serviceNames = opts.serviceNames;
     self.direction = opts.direction;
     self.tcpSession = opts.tcpSession;
     self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
@@ -129,6 +130,15 @@ function handleUntrackedPacket(packet) {
 TChannelSessionTracker.prototype.handleFrame =
 function handleFrame(frame) {
     var self = this;
+
+    // filter on service name
+    if (self.serviceNames && frame && frame.body) {
+        var serviceName = frame.body.service;
+        if (self.serviceNames.indexOf(serviceName) < 0) {
+            return;
+        }
+    }
+
     var type =
         frame &&
         frame.body &&
@@ -206,12 +216,13 @@ function inspectCommonFrame(frame) {
 TChannelSessionTracker.prototype.inspectTracing =
 function inspectTracing(tracing) {
     if (tracing) {
-        console.log(
-            'tracing: spanid: ' + tracing.spanid.toString('hex') + ' ' +
-            'parentid: ' + tracing.parentid.toString('hex') + ' ' +
-            'traceid: ' + tracing.traceid.toString('hex') + ' ' +
-            'traceflags: ' + tracing.flags.toString(16)
-        );
+        console.log(sprintf(
+            'tracing: spanid=%s parentid=%s traceid=%s flags=0x%02x',
+            tracing.spanid.toString('hex'),
+            tracing.parentid.toString('hex'),
+            tracing.traceid.toString('hex'),
+            tracing.flags
+        ));
     }
 };
 
@@ -291,12 +302,9 @@ function addCsum(parts, csum) {
     if (csum.type === 0x00) {
         parts.push(sprintf('csum=none'));
     } else if (csum.type === 0x01) {
-        parts.push(sprintf('csum=%04x (crc32 unverified)', csum.val));
+        parts.push(sprintf('csum=0x%04x (crc32)', csum.val));
     } else if (csum.type === 0x02) {
-        parts.push(sprintf(
-            'csum=%04x (farmhash Fingerprint32 unverified)',
-            csum.val
-        ));
+        parts.push(sprintf('csum=0x%04x (farmhash)', csum.val));
     }
 };
 
