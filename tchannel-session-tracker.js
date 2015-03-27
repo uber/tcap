@@ -326,9 +326,9 @@ function inspectBody(body) {
         }
     }
     // TODO: bring back/
-    // if (!self.inspectThrift(body.arg3)) {
-    //     self.inspectJSON(body.arg3);
-    // }
+    if (body.args && body.args[2] && !self.inspectThrift(body.args[2])) {
+        self.inspectJSON(body.args[2]);
+    }
     if (body.flags & 0x01) {
         console.log(ansi.yellow('to be continued...'));
     }
