@@ -43,6 +43,7 @@ function TChannelTracker(opts) {
     }
 
     self.interfaces = opts.interfaces; // e.g., ['en0']
+    self.serviceNames = opts.serviceNames;
     self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
     self.alwaysShowHex = opts.alwaysShowHex;
     self.bufferSize = opts.bufferSize; // in bytes
@@ -104,6 +105,7 @@ function handleTcpSession(tcpSession, iface) {
         direction: 'incoming',
         onTrack: !tcpSession.missed_syn,
         tcpSession: tcpSession,
+        serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex
     });
@@ -113,6 +115,7 @@ function handleTcpSession(tcpSession, iface) {
         direction: 'outgoing',
         onTrack: !tcpSession.missed_syn,
         tcpSession: tcpSession,
+        serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex
     });
