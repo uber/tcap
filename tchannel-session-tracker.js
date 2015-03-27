@@ -325,12 +325,13 @@ function inspectBody(body) {
             self.inspectArgument('args[' + i + ']', body.args[i]);
         }
     }
-    // TODO: bring back/
-    if (body.args && body.args[2] && !self.inspectThrift(body.args[2])) {
-        self.inspectJSON(body.args[2]);
-    }
     if (body.flags & 0x01) {
         console.log(ansi.yellow('to be continued...'));
+    } else if (body.args && body.args[2]) {
+        // TODO argstream accumulate and parse
+        if (!self.inspectThrift(body.args[2])) {
+            self.inspectJSON(body.args[2]);
+        }
     }
 };
 
