@@ -165,6 +165,11 @@ function handleFrame(frame) {
 TChannelSessionTracker.prototype.handleError =
 function handleError(error) {
     var self = this;
+
+    if (self.serviceNames && self.serviceNames.length > 0) {
+        return;
+    }
+
     console.log(ansi.red(sprintf(
         'session=%d %s %s %s frame parse error',
         self.sessionNumber,
