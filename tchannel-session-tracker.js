@@ -167,7 +167,7 @@ function handleError(error) {
     var self = this;
 
     if (self.serviceNames && self.serviceNames.length > 0) {
-        return;
+        return self.stopTracking();
     }
 
     console.log(ansi.red(sprintf(
