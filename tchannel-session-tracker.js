@@ -48,7 +48,7 @@ function TChannelSessionTracker(opts) {
     self.hexerOptions = opts.hexer || {
         prefix: '  ',
         gutter: 4, // maximum frame length is 64k so FFFF
-        renderHuman: renderByte,
+        colored: true,
         nullHuman: ansi.black(ansi.bold('empty'))
     };
     self.parser = null;
@@ -390,11 +390,3 @@ function inspectJSON(buf) {
     } catch (e) {
     }
 };
-
-function renderByte(c) {
-    if (c > 0x1f && c < 0x7f) {
-        return String.fromCharCode(c);
-    } else {
-        return ansi.bold(ansi.black('.'));
-    }
-}
