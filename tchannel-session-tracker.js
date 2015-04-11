@@ -40,6 +40,7 @@ function TChannelSessionTracker(opts) {
     self.packetNumber = 0;
     self.sessionNumber = opts.sessionNumber;
     self.serviceNames = opts.serviceNames;
+    self.arg1Methods = opts.arg1Methods;
     self.direction = opts.direction;
     self.tcpSession = opts.tcpSession;
     self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
@@ -47,7 +48,7 @@ function TChannelSessionTracker(opts) {
     self.hexerOptions = opts.hexer || {
         prefix: '  ',
         gutter: 4, // maximum frame length is 64k so FFFF
-        renderHuman: renderByte,
+        colored: true,
         nullHuman: ansi.black(ansi.bold('empty'))
     };
     self.parser = null;
@@ -139,6 +140,16 @@ function handleFrame(frame) {
         }
     }
 
+    if (self.arg1Methods && frame && frame.body) {
+        var arg1 = frame.body.args &&
+            frame.body.args[1] &&
+            String(frame.body.args[1]);
+
+        if (self.arg1Methods.indexOf(arg1) < 0) {
+            return;
+        }
+    }
+
     var type =
         frame &&
         frame.body &&
@@ -165,6 +176,11 @@ function handleFrame(frame) {
 TChannelSessionTracker.prototype.handleError =
 function handleError(error) {
     var self = this;
+
+    if (self.arg1Methods && self.arg1Methods.length > 0) {
+        return self.stopTracking();
+    }
+
     console.log(ansi.red(sprintf(
         'session=%d %s %s %s frame parse error',
         self.sessionNumber,
@@ -374,11 +390,3 @@ function inspectJSON(buf) {
     } catch (e) {
     }
 };
-
-function renderByte(c) {
-    if (c > 0x1f && c < 0x7f) {
-        return String.fromCharCode(c);
-    } else {
-        return ansi.bold(ansi.black('.'));
-    }
-}
