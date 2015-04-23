@@ -140,12 +140,21 @@ function handleFrame(frame) {
         }
     }
 
-    if (self.arg1Methods && frame && frame.body) {
-        var arg1 = frame.body.args &&
-            frame.body.args[1] &&
-            String(frame.body.args[1]);
+    // apply the filter on arg1
+    if (self.arg1Methods) {
+        if (frame && frame.body && frame.body.args) {
+            var name = frame.body.args[0];
 
-        if (self.arg1Methods.indexOf(arg1) < 0) {
+            if (!self.arg1Methods[name] &&
+                !self.arg1Methods[frame.id.toString()]) {
+                return;
+            }
+
+            self.arg1Methods[name] = frame.id;
+            self.arg1Methods[frame.id.toString()] = frame.id;
+
+        } else {
+            // filter out frames not related to arg1
             return;
         }
     }
@@ -177,7 +186,7 @@ TChannelSessionTracker.prototype.handleError =
 function handleError(error) {
     var self = this;
 
-    if (self.arg1Methods && self.arg1Methods.length > 0) {
+    if (self.arg1Methods) {
         return self.stopTracking();
     }
 
