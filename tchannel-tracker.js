@@ -48,6 +48,15 @@ function TChannelTracker(opts) {
     self.alwaysShowHex = opts.alwaysShowHex;
     self.bufferSize = opts.bufferSize; // in bytes
     self.nextSessionNumber = 0;
+
+    if (opts.arg1Methods) {
+        self.arg1Methods = {};
+        opts.arg1Methods.forEach(function arr2obj(name) {
+            self.arg1Methods[name] = -1;
+        });
+
+        self.arg1MethodsArray = opts.arg1Methods;
+    }
 }
 
 function portPredicate(port) {
@@ -107,7 +116,8 @@ function handleTcpSession(tcpSession, iface) {
         tcpSession: tcpSession,
         serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
-        alwaysShowHex: self.alwaysShowHex
+        alwaysShowHex: self.alwaysShowHex,
+        arg1Methods: self.arg1Methods
     });
 
     var outgoingSessionTracker = new TChannelSessionTracker({
@@ -117,7 +127,8 @@ function handleTcpSession(tcpSession, iface) {
         tcpSession: tcpSession,
         serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
-        alwaysShowHex: self.alwaysShowHex
+        alwaysShowHex: self.alwaysShowHex,
+        arg1Methods: self.arg1Methods
     });
 
     tcpSession.on('data send', handleDataSend);
@@ -144,6 +155,13 @@ function handleTcpSession(tcpSession, iface) {
         tcpSession.removeListener('data recv', handleDataRecv);
         incomingSessionTracker.end();
         outgoingSessionTracker.end();
-    }
 
+        // clean up the arg1 methods table
+        if (self.arg1Methods) {
+            self.arg1Methods = {};
+            self.arg1MethodsArray.forEach(function arr2obj(name) {
+                self.arg1Methods[name] = -1;
+            });
+        }
+    }
 };
