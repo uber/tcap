@@ -1,6 +1,6 @@
 {
   "name": "tcap",
-  "version": "5.1.4",
+  "version": "5.2.0",
   "description": "pcap analyzer for tchannel connections",
   "keywords": [],
   "author": "Kris Kowal <kris@uber.com>",
