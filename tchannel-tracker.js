@@ -51,7 +51,7 @@ function TChannelTracker(opts) {
 
     if (opts.arg1Methods) {
         self.arg1Methods = {};
-        opts.arg1Methods.forEach(function(name) {
+        opts.arg1Methods.forEach(function arr2obj(name) {
             self.arg1Methods[name] = -1;
         });
 
@@ -159,7 +159,7 @@ function handleTcpSession(tcpSession, iface) {
         // clean up the arg1 methods table
         if (self.arg1Methods) {
             self.arg1Methods = {};
-            self.arg1MethodsArray.forEach(function(name) {
+            self.arg1MethodsArray.forEach(function arr2obj(name) {
                 self.arg1Methods[name] = -1;
             });
         }

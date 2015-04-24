@@ -146,12 +146,12 @@ function handleFrame(frame) {
             var name = frame.body.args[0];
 
             if (!self.arg1Methods[name] &&
-                !self.arg1Methods[frame.id.toString()]) {
+                !self.arg1Methods[frame.id]) {
                 return;
             }
 
             self.arg1Methods[name] = frame.id;
-            self.arg1Methods[frame.id.toString()] = frame.id;
+            self.arg1Methods[frame.id] = frame.id;
 
         } else {
             // filter out frames not related to arg1
