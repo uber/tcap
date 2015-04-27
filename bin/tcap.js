@@ -54,6 +54,9 @@ function main(argv) {
         .option('-1 --arg1 <arg1-method>',
             'arg1 method or methods to show ' +
             '(default: all arg1 methods shown)', collect, [])
+        .option('-r --response <response>',
+            'responses to show: O[K], N[otOk], E[rror] ' +
+            '(default: all shown)', collect, [])
         .option('-b --buffer-size <mb>',
             'size in MiB to buffer between libpcap and app ' +
             '(default: 10)')
@@ -78,6 +81,8 @@ function main(argv) {
         filter: commander.filter,
         serviceNames: commander.service.length ? commander.service : null,
         arg1Methods: commander.arg1.length ? commander.arg1 : null,
+        responseStatuses: commander.response.length ?
+            commander.response : null,
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024

@@ -27,6 +27,9 @@ var util = require('util');
 var ansi = require('chalk');
 var events = require('events');
 var TChannelSessionTracker = require('./tchannel-session-tracker');
+var TchannelTypes = require('./tchannel-types');
+var FrameType = TchannelTypes.FrameType;
+var ResponseType = TchannelTypes.ResponseType;
 
 module.exports = TChannelTracker;
 function TChannelTracker(opts) {
@@ -56,6 +59,32 @@ function TChannelTracker(opts) {
         });
 
         self.arg1MethodsArray = opts.arg1Methods;
+    }
+
+    if (opts.responseStatuses) {
+        self.responseStatuses = [];
+        opts.responseStatuses.forEach(function createRSTable(name) {
+            switch (name.toLowerCase()) {
+                case 'o':
+                case 'ok':
+                    self.responseStatuses[ResponseType.Ok] = 'Ok';
+                    break;
+                case 'n':
+                case 'notok':
+                    self.responseStatuses[ResponseType.NotOk] = 'NotOk';
+                    break;
+                case 'e':
+                case 'error':
+                    self.responseStatuses[FrameType.Error] = 'Error';
+                    break;
+                default:
+                    console.log(ansi.red(
+                    ansi.bold('Warning: wrong response status ' +
+                              'in command options: \'-r ' +
+                              name + '\'')));
+                    break;
+            }
+        });
     }
 }
 
@@ -117,7 +146,8 @@ function handleTcpSession(tcpSession, iface) {
         serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        arg1Methods: self.arg1Methods
+        arg1Methods: self.arg1Methods,
+        responseStatuses: self.responseStatuses
     });
 
     var outgoingSessionTracker = new TChannelSessionTracker({
@@ -128,7 +158,8 @@ function handleTcpSession(tcpSession, iface) {
         serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        arg1Methods: self.arg1Methods
+        arg1Methods: self.arg1Methods,
+        responseStatuses: self.responseStatuses
     });
 
     tcpSession.on('data send', handleDataSend);
