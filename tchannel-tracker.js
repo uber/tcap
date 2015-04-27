@@ -28,7 +28,6 @@ var ansi = require('chalk');
 var events = require('events');
 var TChannelSessionTracker = require('./tchannel-session-tracker');
 var TchannelTypes = require('./tchannel-types');
-var FrameType = TchannelTypes.FrameType;
 var ResponseType = TchannelTypes.ResponseType;
 
 module.exports = TChannelTracker;
@@ -61,31 +60,7 @@ function TChannelTracker(opts) {
         self.arg1MethodsArray = opts.arg1Methods;
     }
 
-    if (opts.responseStatuses) {
-        self.responseStatuses = [];
-        opts.responseStatuses.forEach(function createRSTable(name) {
-            switch (name.toLowerCase()) {
-                case 'o':
-                case 'ok':
-                    self.responseStatuses[ResponseType.Ok] = 'Ok';
-                    break;
-                case 'n':
-                case 'notok':
-                    self.responseStatuses[ResponseType.NotOk] = 'NotOk';
-                    break;
-                case 'e':
-                case 'error':
-                    self.responseStatuses[FrameType.Error] = 'Error';
-                    break;
-                default:
-                    console.log(ansi.red(
-                    ansi.bold('Warning: wrong response status ' +
-                              'in command options: \'-r ' +
-                              name + '\'')));
-                    break;
-            }
-        });
-    }
+    self.responseStatuses = opts.responseStatuses;
 }
 
 function portPredicate(port) {

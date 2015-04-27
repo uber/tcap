@@ -32,10 +32,12 @@ var thriftDecoder = require('./thrift/simple_decoder');
 var v2 = require('tchannel/v2');
 var bufrw = require('bufrw');
 var ChunkReader = require('bufrw/stream/chunk_reader');
+var ErrorResponse = require('tchannel/v2/error_response');
+var CodeErrors = ErrorResponse.CodeErrors;
+var TChannelFrame = require('tchannel/v2/index');
+var FrameTypes = TChannelFrame.Types;
 var TchannelTypes = require('./tchannel-types');
-var FrameType = TchannelTypes.FrameType;
 var FrameNameByType = TchannelTypes.FrameNameByType;
-var ErrorNameByType = TchannelTypes.ErrorNameByType;
 var ResponseNameByType = TchannelTypes.ResponseNameByType;
 
 module.exports = TChannelSessionTracker;
@@ -166,18 +168,19 @@ function handleFrame(frame) {
         }
     }
 
+    // TODO: also show the corresponding CallReq
     // filter on response statuses
     if (self.responseStatuses) {
         if (frame && frame.body && frame.body.type) {
-            if (frame.body.type === FrameType.CallRes ||
-                frame.body.type === FrameType.CallResContinue) {
+            if (frame.body.type === FrameTypes.CallResponse ||
+                frame.body.type === FrameTypes.CallResponseCont) {
 
                 if (!frame.body.code ||
                     !self.responseStatuses[frame.body.code]) {
                     return;
                 }
-            } else if (frame.body.type === FrameType.Error) {
-                if (!self.responseStatuses[FrameType.Error]) {
+            } else if (frame.body.type === FrameTypes.ErrorResponse) {
+                if (!self.responseStatuses[FrameTypes.ErrorResponse]) {
                     return;
                 }
             } else {
@@ -201,7 +204,7 @@ function handleFrame(frame) {
         self.tcpSession.dst,
         frame && frame.id,
         type,
-        (frame.body.type !== FrameType.CallRes ? '' :
+        (frame.body.type !== FrameTypes.CallResponse ? '' :
             ResponseNameByType[frame.body.code] ?
                 ' ' + ResponseNameByType[frame.body.code] :
                 ''),
@@ -320,9 +323,14 @@ function inspectBanner(body, frame) {
 TChannelSessionTracker.prototype.addFrameTypeName =
 function addFrameTypeName(parts, body) {
     if (FrameNameByType[body.type]) {
-        var suffix = body.type ===
-            FrameType.Error ? '[' + ErrorNameByType[body.code] + ']' :
-            '';
+        var suffix = '';
+        if (body.type === ErrorResponse.TypeCode) {
+            if (CodeErrors[body.code]) {
+                suffix = '[' + CodeErrors[body.code].codeName + ']';
+            } else {
+                suffix = '[Unknown]';
+            }
+        }
         parts.push(FrameNameByType[body.type].toUpperCase() + suffix);
     } else {
         parts.push(ansi.red(sprintf(
