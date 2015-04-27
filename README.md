@@ -15,15 +15,19 @@ Uses pcap to inspect tchannel traffic over a network interface.
 
   Options:
 
-    -h, --help                 output usage information
-    -V, --version              output the version number
-    -i --interface [interface  network interface name for capture (defaults to first with an address)
-    -f --filter [filter]       packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
-    -b --buffer-size [mb]      size in MiB to buffer between libpcap and app (default: 10)
-    -h --hex                   show hex dumps for all packets
-    -j --json                  show JSON dumps for all parsed frames
-    --color                    enables colors if not connected to a tty.
-    --no-color                 disables colors if connected to a tty.
+    -h, --help                   output usage information
+    -V, --version                output the version number
+    -i --interface <interface>   network interface interfaces (defaults to first with an address)
+    -p --port <port>             a port or ports to track
+    -f --filter <filter>         packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
+    -s --service <service-name>  service name or names to show (default: all services shown)
+    -1 --arg1 <arg1-method>      arg1 method or methods to show (default: all arg1 methods shown)
+    -r --response <response>     responses to show: O[K], N[otOk], E[rror] (default: all shown)
+    -b --buffer-size <mb>        size in MiB to buffer between libpcap and app (default: 10)
+    -x --hex                     show hex dumps for all packets
+    --inspect                    show JSON dumps for all parsed frames
+    --color                      enables colors if not connected to a tty.
+    --no-color                   disables colors if connected to a tty.
 ```
 
 ## Example
