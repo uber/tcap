@@ -25,6 +25,10 @@
 var commander = require('commander');
 var TChannelTracker = require('../tchannel-tracker.js');
 var ansi = require('chalk');
+var TChannelFrame = require('tchannel/v2/index');
+var FrameTypes = TChannelFrame.Types;
+var TchannelTypes = require('../tchannel-types');
+var ResponseType = TchannelTypes.ResponseType;
 
 module.exports = main;
 
@@ -54,6 +58,9 @@ function main(argv) {
         .option('-1 --arg1 <arg1-method>',
             'arg1 method or methods to show ' +
             '(default: all arg1 methods shown)', collect, [])
+        .option('-r --response <response>',
+            'responses to show: O[K], N[otOk], E[rror] ' +
+            '(default: all shown)', collect, [])
         .option('-b --buffer-size <mb>',
             'size in MiB to buffer between libpcap and app ' +
             '(default: 10)')
@@ -78,6 +85,7 @@ function main(argv) {
         filter: commander.filter,
         serviceNames: commander.service.length ? commander.service : null,
         arg1Methods: commander.arg1.length ? commander.arg1 : null,
+        responseStatuses: checkResponse(commander.response),
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024
@@ -92,3 +100,38 @@ function checkUid() {
         console.log(ansi.red('Trying to open anyway...'));
     }
 }
+
+function checkResponse(response) {
+    response = response.length ? response : null;
+    if (!response) {
+        return null;
+    }
+
+    var res = [];
+    response.forEach(function createRSTable(name) {
+        switch (name.toLowerCase()) {
+            case 'o':
+            case 'ok':
+                res[ResponseType.Ok] = 'Ok';
+                break;
+            case 'n':
+            case 'notok':
+                res[ResponseType.NotOk] = 'NotOk';
+                break;
+            case 'e':
+            case 'error':
+                res[FrameTypes.ErrorResponse] = 'Error';
+                break;
+            default:
+                console.log(ansi.red(
+                ansi.bold('Warning: wrong response status ' +
+                          'in command options: \'-r ' +
+                          name + '\'')));
+                break;
+        }
+    });
+
+    return res;
+}
+
+
