@@ -159,7 +159,6 @@ function handleFrame(frame) {
                 return;
             }
 
-            self.arg1Methods[name] = frame.id;
             self.arg1Methods[frame.id] = frame.id;
 
         } else {
