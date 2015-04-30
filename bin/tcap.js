@@ -29,6 +29,7 @@ var TChannelFrame = require('tchannel/v2/index');
 var FrameTypes = TChannelFrame.Types;
 var TchannelTypes = require('../tchannel-types');
 var ResponseType = TchannelTypes.ResponseType;
+var FrameFilters = require('../frame-filters');
 
 module.exports = main;
 
@@ -82,10 +83,8 @@ function main(argv) {
     var tracker = new TChannelTracker({
         interfaces: commander.interface.length ? commander.interface : [''],
         ports: commander.port,
-        filter: commander.filter,
-        serviceNames: commander.service.length ? commander.service : null,
-        arg1Methods: commander.arg1.length ? commander.arg1 : null,
-        responseStatuses: checkResponse(commander.response),
+        pcapFilter: commander.filter,
+        filters: registerFilters(),
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
         bufferSize: bufferSizeMb * 1024 * 1024
@@ -99,6 +98,20 @@ function checkUid() {
             ' which are usually required for raw packet capture.')));
         console.log(ansi.red('Trying to open anyway...'));
     }
+}
+
+function registerFilters() {
+    var filters = new FrameFilters();
+
+    // this order of registration matters
+    filters.register('serviceName',
+        commander.service.length ? commander.service : null);
+    filters.register('arg1',
+        commander.arg1.length ? commander.arg1 : null);
+    filters.register('response',
+        checkResponse(commander.response));
+
+    return filters;
 }
 
 function checkResponse(response) {
@@ -133,5 +146,3 @@ function checkResponse(response) {
 
     return res;
 }
-
-
