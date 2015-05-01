@@ -22,6 +22,12 @@
 
 'use strict';
 
+//
+// TODO
+// 1. handle the conflicts between filters
+// 2. add filter on arg2 and arg3
+// 3. add option to allow customizing the sizes of arg2 and arg3 being shown
+//
 var TChannelFrame = require('tchannel/v2/index');
 var FrameTypes = TChannelFrame.Types;
 
