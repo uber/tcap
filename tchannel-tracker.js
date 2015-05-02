@@ -33,23 +33,23 @@ function TChannelTracker(opts) {
     var self = this;
     events.EventEmitter.call(self, opts);
 
-    self.filter = opts.filter || 'ip proto \\tcp';
+    self.pcapFilter = opts.filter || 'ip proto \\tcp';
 
     var ports = opts.ports.slice();
     if (ports.length) {
-        self.filter += ' and (' + ports.map(portPredicate).join(' or ') + ')';
-    } else if (!/\bport\b/.test(self.filter)) {
-        self.filter += ' and port 4040';
+        self.pcapFilter += ' and (' +
+            ports.map(portPredicate).join(' or ') + ')';
+    } else if (!/\bport\b/.test(self.pcapFilter)) {
+        self.pcapFilter += ' and port 4040';
     }
 
     self.interfaces = opts.interfaces; // e.g., ['en0']
-    self.serviceNames = opts.serviceNames;
     self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
     self.alwaysShowHex = opts.alwaysShowHex;
     self.bufferSize = opts.bufferSize; // in bytes
     self.nextSessionNumber = 0;
 
-    self.arg1MethodsArray = opts.arg1Methods;
+    self.filters = opts.filters;
 }
 
 function portPredicate(port) {
@@ -66,7 +66,7 @@ TChannelTracker.prototype.listen = function listen() {
         var tcpTracker = new pcap.TCPTracker();
         var pcapSession = pcap.createSession(
             iface,
-            self.filter,
+            self.pcapFilter,
             self.bufferSize
         );
         pcapSession.on('packet', function handleTcpPacket(rawPacket) {
@@ -83,7 +83,7 @@ TChannelTracker.prototype.listen = function listen() {
         console.log(
             ansi.cyan('listening on interface %s with filter %s'),
             pcapSession.device_name,
-            self.filter
+            self.pcapFilter
         );
     }
 };
@@ -102,24 +102,16 @@ function handleTcpSession(tcpSession, iface) {
         iface
     );
 
-    var arg1Methods = null;
-    if (self.arg1MethodsArray) {
-        arg1Methods = {};
-        self.arg1MethodsArray.forEach(function arr2obj(name) {
-            arg1Methods[name] = -1;
-        });
-    }
+    var filterHandle = {};
 
     var incomingSessionTracker = new TChannelSessionTracker({
         sessionNumber: sessionNumber,
         direction: 'incoming',
         onTrack: !tcpSession.missed_syn,
         tcpSession: tcpSession,
-        serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        arg1Methods: arg1Methods,
-        responseStatuses: self.responseStatuses
+        filterInstance: {handle: filterHandle, filters: self.filters}
     });
 
     var outgoingSessionTracker = new TChannelSessionTracker({
@@ -127,11 +119,9 @@ function handleTcpSession(tcpSession, iface) {
         direction: 'outgoing',
         onTrack: !tcpSession.missed_syn,
         tcpSession: tcpSession,
-        serviceNames: self.serviceNames,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        arg1Methods: arg1Methods,
-        responseStatuses: self.responseStatuses
+        filterInstance: {handle: filterHandle, filters: self.filters}
     });
 
     tcpSession.on('data send', handleDataSend);
