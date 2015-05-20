@@ -38,6 +38,7 @@ function TChannelFrameFilters() {
     self.filters = {};
     self.filters.serviceName = new ServicerNameFilter();
     self.filters.arg1 = new Arg1Filter();
+    self.filters.arg1Matcher = new Arg1Matcher();
     self.filters.response = new ResponseFilter();
 
     self.usedFilters = [];
@@ -85,7 +86,7 @@ function shouldRemove(frame) {
 }
 
 //
-// the fitler on service name
+// the filter on service name
 //
 function ServicerNameFilter() {}
 
@@ -131,7 +132,7 @@ ServicerNameFilter.prototype.process = function process(handle, frame) {
 };
 
 //
-// the fitler on arg1
+// the filter on arg1
 //
 function Arg1Filter() {}
 
@@ -190,7 +191,7 @@ Arg1Filter.prototype.process = function process(handle, frame) {
 };
 
 //
-// the fitler on responses
+// the filter on responses
 //
 function ResponseFilter() {}
 
@@ -243,6 +244,52 @@ ResponseFilter.prototype.process = function process(handle, frame) {
     });
 
     // return true for the last frame to be printed
+    return true;
+};
+
+//
+// the pair matcher on arg1
+//
+function Arg1Matcher() {}
+
+Arg1Matcher.prototype.take = function take(filter) {
+    if (!filter) {
+        return false;
+    }
+
+    return true;
+};
+
+// should alway return true, since this isn't a filter
+Arg1Matcher.prototype.process = function process(handle, frame) {
+    // arg1 only applies to the following types
+    if (frame.body.type !== FrameTypes.CallRequest &&
+        frame.body.type !== FrameTypes.CallResponse &&
+        frame.body.type !== FrameTypes.CallRequestCont &&
+        frame.body.type !== FrameTypes.CallResponseCont) {
+        return true;
+    }
+
+    if (!handle.arg1Matcher) {
+        handle.arg1Matcher = {};
+    }
+
+    if (!frame.body.args) {
+        return true;
+    }
+
+    var ids = handle.arg1Matcher;
+    if (ids[frame.id]) {
+        frame.body.args[0] = ids[frame.id];
+        if (shouldRemove(frame)) {
+            delete ids[frame.id];
+        }
+
+        return true;
+    }
+
+    ids[frame.id] = frame.body.args[0];
+
     return true;
 };
 

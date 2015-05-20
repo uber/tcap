@@ -89,6 +89,7 @@ Install tcap either in your project, or globally as depicted:
 ## Contributors
 
  - kriskowal
+ - shannili
 
 ## MIT Licenced
 

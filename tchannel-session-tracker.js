@@ -29,7 +29,7 @@ var ansi = require('chalk');
 var stream = require('stream');
 var hexer = require('hexer');
 var sprintf = require('sprintf-js').sprintf;
-var thriftDecoder = require('./thrift/simple_decoder');
+var thriftDecoder = require('./thrift/decoder');
 var v2 = require('tchannel/v2');
 var bufrw = require('bufrw');
 var ChunkReader = require('bufrw/stream/chunk_reader');
@@ -365,7 +365,7 @@ function inspectBody(body) {
         parts = parts.push(ansi.yellow('to be continued...'));
     } else if (body.args && body.args[2]) {
         // TODO argstream accumulate and parse
-        var as = self.inspectThrift(body.args[2]);
+        var as = self.inspectThrift(body.args[2], body.args[0]);
         as = as || self.inspectJSON(body.args[2]);
         parts = parts.concat(as);
     }
@@ -397,9 +397,10 @@ function inspectArgument(name, argument) {
 };
 
 TChannelSessionTracker.prototype.inspectThrift =
-function inspectThrift(buf) {
+function inspectThrift(buf, arg1) {
+    var self = this;
     try {
-        var data = thriftDecoder.decode(buf);
+        var data = thriftDecoder.decode(buf, arg1, self.direction);
         var parts = [ansi.yellow('arg3 as thrift')];
         parts.push(util.inspect(data, {colors: true, depth: Infinity}));
         return parts;
