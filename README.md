@@ -21,7 +21,9 @@ Uses pcap to inspect tchannel traffic over a network interface.
     -p --port <port>             a port or ports to track
     -f --filter <filter>         packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
     -s --service <service-name>  service name or names to show (default: all services shown)
+    -t --thrift <thrift>         path of the directory for thrift spec files
     -1 --arg1 <arg1-method>      arg1 method or methods to show (default: all arg1 methods shown)
+    --m1                         show arg1 name in call responses
     -r --response <response>     responses to show: O[K], N[otOk], E[rror] (default: all shown)
     -b --buffer-size <mb>        size in MiB to buffer between libpcap and app (default: 10)
     -x --hex                     show hex dumps for all packets
