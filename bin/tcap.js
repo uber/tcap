@@ -30,6 +30,7 @@ var FrameTypes = TChannelFrame.Types;
 var TchannelTypes = require('../tchannel-types');
 var ResponseType = TchannelTypes.ResponseType;
 var FrameFilters = require('../frame-filters');
+var thriftDecoder = require('../thrift/decoder.js');
 
 module.exports = main;
 
@@ -56,9 +57,13 @@ function main(argv) {
         .option('-s --service <service-name>',
             'service name or names to show ' +
             '(default: all services shown)', collect, [])
+        .option('-t --thrift <thrift>',
+            'path of the directory for thrift spec files')
         .option('-1 --arg1 <arg1-method>',
             'arg1 method or methods to show ' +
             '(default: all arg1 methods shown)', collect, [])
+        .option('--m1',
+            'show arg1 name in call responses')
         .option('-r --response <response>',
             'responses to show: O[K], N[otOk], E[rror] ' +
             '(default: all shown)', collect, [])
@@ -80,14 +85,17 @@ function main(argv) {
 
     checkUid();
 
+    thriftDecoder.setup(commander.thrift);
+
     var tracker = new TChannelTracker({
         interfaces: commander.interface.length ? commander.interface : [''],
         ports: commander.port,
         pcapFilter: commander.filter,
-        filters: registerFilters(),
+        filters: registerFilters(commander),
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
-        bufferSize: bufferSizeMb * 1024 * 1024
+        bufferSize: bufferSizeMb * 1024 * 1024,
+        color: commander.color
     });
     tracker.listen();
 }
@@ -100,16 +108,22 @@ function checkUid() {
     }
 }
 
-function registerFilters() {
+function registerFilters(options) {
     var filters = new FrameFilters();
+
+    if (options.thrift) {
+        // thrift depends on m1
+        options.m1 = true;
+    }
 
     // this order of registration matters
     filters.register('serviceName',
-        commander.service.length ? commander.service : null);
+        options.service.length ? options.service : null);
     filters.register('arg1',
-        commander.arg1.length ? commander.arg1 : null);
+        options.arg1.length ? options.arg1 : null);
     filters.register('response',
-        checkResponse(commander.response));
+        checkResponse(options.response));
+    filters.register('arg1Matcher', options.m1);
 
     return filters;
 }
