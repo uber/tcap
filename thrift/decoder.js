@@ -40,14 +40,16 @@ function setup(dir) {
         if (match) {
             var spec = thriftify.readSpecSync(path.join(dir, file));
             fileRead.push(match[0]);
-            for(var service in spec.servicesAndFunctions) {
-                if (specs[service]) {
-                    console.log(ansi.red(
-                        ansi.bold('Warning: service name conflicts on "' + service + '"')));
-                    continue;
-                }
-                specs[service] = spec;
-            }
+            Object.keys(spec.servicesAndFunctions).forEach(
+                function each(service) {
+                    if (specs[service]) {
+                        console.log(ansi.red(
+                            ansi.bold('Warning: service name conflicts on "'
+                                + service + '"')));
+                        return;
+                    }
+                    specs[service] = spec;
+                });
         }
     });
 

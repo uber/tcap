@@ -94,7 +94,8 @@ function main(argv) {
         filters: registerFilters(commander),
         alwaysShowFrameDump: commander.inspect,
         alwaysShowHex: commander.hex,
-        bufferSize: bufferSizeMb * 1024 * 1024
+        bufferSize: bufferSizeMb * 1024 * 1024,
+        color: commander.color
     });
     tracker.listen();
 }

@@ -53,10 +53,11 @@ function TChannelSessionTracker(opts) {
     self.tcpSession = opts.tcpSession;
     self.alwaysShowFrameDump = opts.alwaysShowFrameDump;
     self.alwaysShowHex = opts.alwaysShowHex;
+    self.color = opts.color;
     self.hexerOptions = opts.hexer || {
         prefix: '  ',
         gutter: 4, // maximum frame length is 64k so FFFF
-        colored: true,
+        colored: self.color,
         nullHuman: ansi.black(ansi.bold('empty')),
         // headSep is neccessary to overwrite the hexer default
         headSep: ansi.cyan(': ')
@@ -402,7 +403,7 @@ function inspectThrift(buf, arg1) {
     try {
         var data = thriftDecoder.decode(buf, arg1, self.direction);
         var parts = [ansi.yellow('arg3 as thrift')];
-        parts.push(util.inspect(data, {colors: true, depth: Infinity}));
+        parts.push(util.inspect(data, {colors: self.color, depth: Infinity}));
         return parts;
     } catch (e) {
         return null;
@@ -414,7 +415,7 @@ function inspectJSON(buf) {
     try {
         var data = JSON.parse(buf.toString('utf8'));
         var parts = [ansi.yellow('arg3 as json')];
-        parts.push(util.inspect(data, {colors: true, depth: Infinity}));
+        parts.push(util.inspect(data, {colors: self.color, depth: Infinity}));
         return parts;
     } catch (e) {
         return [];

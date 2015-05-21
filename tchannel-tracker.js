@@ -50,6 +50,7 @@ function TChannelTracker(opts) {
     self.nextSessionNumber = 0;
 
     self.filters = opts.filters;
+    self.color = opts.color
 }
 
 function portPredicate(port) {
@@ -111,7 +112,8 @@ function handleTcpSession(tcpSession, iface) {
         tcpSession: tcpSession,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        filterInstance: {handle: filterHandle, filters: self.filters}
+        filterInstance: {handle: filterHandle, filters: self.filters},
+        color: self.color
     });
 
     var outgoingSessionTracker = new TChannelSessionTracker({
@@ -121,7 +123,8 @@ function handleTcpSession(tcpSession, iface) {
         tcpSession: tcpSession,
         alwaysShowFrameDump: self.alwaysShowFrameDump,
         alwaysShowHex: self.alwaysShowHex,
-        filterInstance: {handle: filterHandle, filters: self.filters}
+        filterInstance: {handle: filterHandle, filters: self.filters},
+        color: self.color
     });
 
     tcpSession.on('data send', handleDataSend);
