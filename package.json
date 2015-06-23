@@ -26,7 +26,7 @@
     "hexer": "^1.4.5",
     "pcap": "^2.0.1",
     "sprintf-js": "^1.0.2",
-    "tchannel": "2.0.0",
+    "tchannel": "^2.0.1",
     "thriftify": "1.0.0-alpha13"
   },
   "devDependencies": {
