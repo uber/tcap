@@ -38,7 +38,7 @@ function inclusiveValidate(filters, filterName) {
     var exclusive;
     for (var i = 0; i < filters.length; i++) {
         var name = filters[i];
-        if (name.indexOf('-') === 0) {
+        if (name.indexOf('~') === 0) {
             exclusive = true;
         } else {
             inclusive = true;
@@ -128,7 +128,7 @@ ServicerNameFilter.prototype.process = function process(handle, frame) {
     var inclusive = !!self.inclusive;
     var serviceName = frame.body.service;
     if (serviceName && !inclusive) {
-        serviceName = '-' + serviceName;
+        serviceName = '~' + serviceName;
     }
 
     if (!handle.serviceName) {
@@ -210,7 +210,7 @@ Arg1Filter.prototype.process = function process(handle, frame) {
 
     var name = frame.body.args[0];
     if (!inclusive) {
-        name = '-' + name;
+        name = '~' + name;
     }
 
     if (!self.arg1Methods[name]) {
