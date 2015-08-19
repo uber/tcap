@@ -18,7 +18,7 @@ Uses pcap to inspect tchannel traffic over a network interface.
     -h, --help                   output usage information
     -V, --version                output the version number
     -i --interface <interface>   network interface interfaces (defaults to first with an address)
-    -p --port <port>             a port or ports to track
+    -p --port <port>             a port to track or use "port1-port2" for a range of ports to track between port1 and port2
     -f --filter <filter>         packet filter in pcap-filter(7) syntax (default: all TCP packets on port 4040)
     -s --service <service-name>  service name or names to show (default: all services shown)
     -t --thrift <thrift>         path of the directory for thrift spec files
