@@ -57,12 +57,12 @@ function main(argv) {
             '(default: all TCP packets on port 4040)')
         .option('-s --service <service-name>',
             'service name or names to show (default: all services shown), or' + newline +
-            'use "~service-name" to exclude the service', collect, [])
+            'use "-service-name" to exclude the service', collect, [])
         .option('-t --thrift <thrift>',
             'path of the directory for thrift spec files')
         .option('-1 --arg1 <arg1-method>',
             'arg1 method or methods to show (default: all arg1 methods shown), or'  + newline +
-            'use "~arg1-method" to exclude the arg1', collect, [])
+            'use "-arg1-method" to exclude the arg1', collect, [])
         .option('--m1',
             'show arg1 name in call responses')
         .option('-r --response <response>',

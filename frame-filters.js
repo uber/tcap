@@ -33,21 +33,21 @@ var TChannelFrame = require('tchannel/v2/index');
 var FrameTypes = TChannelFrame.Types;
 
 
-function inclusionValidate(filters, filterName) {
-    var inclusion;
-    var exclusion;
+function inclusiveValidate(filters, filterName) {
+    var inclusive;
+    var exclusive;
     for (var i = 0; i < filters.length; i++) {
         var name = filters[i];
-        if (name.indexOf('~') === 0) {
-            exclusion = true;
+        if (name.indexOf('-') === 0) {
+            exclusive = true;
         } else {
-            inclusion = true;
+            inclusive = true;
         }
 
-        assert(!exclusion || !inclusion, filterName + ' cannot have a mix of inclusions and exclusions');
+        assert(!exclusive || !inclusive, filterName + ' cannot have a mix of inclusives and exclusives');
     }
 
-    return inclusion;
+    return inclusive;
 }
 
 module.exports = TChannelFrameFilters;
@@ -118,17 +118,17 @@ ServicerNameFilter.prototype.take = function take(filter) {
         self.serviceNames = filter;
 
         // validate
-        self.inclusion = inclusionValidate(self.serviceNames, 'Service name filters');
+        self.inclusive = inclusiveValidate(self.serviceNames, 'Service name filters');
         return true;
     }
 };
 
 ServicerNameFilter.prototype.process = function process(handle, frame) {
     var self = this;
-    var inclusion = !!self.inclusion;
+    var inclusive = !!self.inclusive;
     var serviceName = frame.body.service;
-    if (serviceName && !inclusion) {
-        serviceName = '~' + serviceName;
+    if (serviceName && !inclusive) {
+        serviceName = '-' + serviceName;
     }
 
     if (!handle.serviceName) {
@@ -138,23 +138,23 @@ ServicerNameFilter.prototype.process = function process(handle, frame) {
     var ids = handle.serviceName;
     if (!serviceName) {
         if (!ids[frame.id]) {
-            return !inclusion;
+            return !inclusive;
         }
 
         if (shouldRemove(frame)) {
             delete ids[frame.id];
         }
 
-        return inclusion;
+        return inclusive;
     }
 
     if (self.serviceNames.indexOf(serviceName) < 0) {
-        return !inclusion;
+        return !inclusive;
     }
 
     ids[frame.id] = true;
 
-    return inclusion;
+    return inclusive;
 };
 
 //
@@ -169,7 +169,7 @@ Arg1Filter.prototype.take = function take(filter) {
         return false;
     } else {
         self.arg1Methods = {};
-        self.inclusion = inclusionValidate(filter, 'Arg1 filters');
+        self.inclusive = inclusiveValidate(filter, 'Arg1 filters');
         filter.forEach(function arr2obj(name) {
             self.arg1Methods[name] = true;
         });
@@ -180,14 +180,14 @@ Arg1Filter.prototype.take = function take(filter) {
 
 Arg1Filter.prototype.process = function processEx(handle, frame) {
     var self = this;
-    var inclusion = !!self.inclusion;
+    var inclusive = !!self.inclusive;
 
     // arg1 only applies to the following types
     if (frame.body.type !== FrameTypes.CallRequest &&
         frame.body.type !== FrameTypes.CallResponse &&
         frame.body.type !== FrameTypes.CallRequestCont &&
         frame.body.type !== FrameTypes.CallResponseCont) {
-        return !inclusion;
+        return !inclusive;
     }
 
     if (!handle.arg1) {
@@ -196,7 +196,7 @@ Arg1Filter.prototype.process = function processEx(handle, frame) {
 
     if (!frame.body.args) {
         // filter out frames not related
-        return !inclusion;
+        return !inclusive;
     }
 
     var ids = handle.arg1;
@@ -205,21 +205,21 @@ Arg1Filter.prototype.process = function processEx(handle, frame) {
             delete ids[frame.id];
         }
 
-        return inclusion;
+        return inclusive;
     }
 
     var name = frame.body.args[0];
-    if (!inclusion) {
-        name = '~' + name;
+    if (!inclusive) {
+        name = '-' + name;
     }
 
     if (!self.arg1Methods[name]) {
-        return !inclusion;
+        return !inclusive;
     }
 
     ids[frame.id] = true;
 
-    return inclusion;
+    return inclusive;
 };
 
 //
