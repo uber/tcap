@@ -21,6 +21,7 @@
 /*eslint no-console:0 max-statements: [1, 30]*/
 
 'use strict';
+var assert = require('assert');
 
 //
 // TODO
@@ -30,6 +31,24 @@
 //
 var TChannelFrame = require('tchannel/v2/index');
 var FrameTypes = TChannelFrame.Types;
+
+
+function inclusiveValidate(filters, filterName) {
+    var inclusive;
+    var exclusive;
+    for (var i = 0; i < filters.length; i++) {
+        var name = filters[i];
+        if (name.indexOf('-') === 0) {
+            exclusive = true;
+        } else {
+            inclusive = true;
+        }
+
+        assert(!exclusive || !inclusive, filterName + ' cannot have a mix of inclusives and exclusives');
+    }
+
+    return inclusive;
+}
 
 module.exports = TChannelFrameFilters;
 function TChannelFrameFilters() {
@@ -97,13 +116,20 @@ ServicerNameFilter.prototype.take = function take(filter) {
         return false;
     } else {
         self.serviceNames = filter;
+
+        // validate
+        self.inclusive = inclusiveValidate(self.serviceNames, 'Service name filters');
         return true;
     }
 };
 
 ServicerNameFilter.prototype.process = function process(handle, frame) {
     var self = this;
+    var inclusive = !!self.inclusive;
     var serviceName = frame.body.service;
+    if (serviceName && !inclusive) {
+        serviceName = '-' + serviceName;
+    }
 
     if (!handle.serviceName) {
         handle.serviceName = {};
@@ -112,23 +138,23 @@ ServicerNameFilter.prototype.process = function process(handle, frame) {
     var ids = handle.serviceName;
     if (!serviceName) {
         if (!ids[frame.id]) {
-            return false;
+            return !inclusive;
         }
 
         if (shouldRemove(frame)) {
             delete ids[frame.id];
         }
 
-        return true;
+        return inclusive;
     }
 
     if (self.serviceNames.indexOf(serviceName) < 0) {
-        return false;
+        return !inclusive;
     }
 
     ids[frame.id] = true;
 
-    return true;
+    return inclusive;
 };
 
 //
@@ -143,6 +169,7 @@ Arg1Filter.prototype.take = function take(filter) {
         return false;
     } else {
         self.arg1Methods = {};
+        self.inclusive = inclusiveValidate(filter, 'Arg1 filters');
         filter.forEach(function arr2obj(name) {
             self.arg1Methods[name] = true;
         });
@@ -153,13 +180,14 @@ Arg1Filter.prototype.take = function take(filter) {
 
 Arg1Filter.prototype.process = function process(handle, frame) {
     var self = this;
+    var inclusive = !!self.inclusive;
 
     // arg1 only applies to the following types
     if (frame.body.type !== FrameTypes.CallRequest &&
         frame.body.type !== FrameTypes.CallResponse &&
         frame.body.type !== FrameTypes.CallRequestCont &&
         frame.body.type !== FrameTypes.CallResponseCont) {
-        return false;
+        return !inclusive;
     }
 
     if (!handle.arg1) {
@@ -168,7 +196,7 @@ Arg1Filter.prototype.process = function process(handle, frame) {
 
     if (!frame.body.args) {
         // filter out frames not related
-        return false;
+        return !inclusive;
     }
 
     var ids = handle.arg1;
@@ -177,17 +205,21 @@ Arg1Filter.prototype.process = function process(handle, frame) {
             delete ids[frame.id];
         }
 
-        return true;
+        return inclusive;
     }
 
     var name = frame.body.args[0];
+    if (!inclusive) {
+        name = '-' + name;
+    }
+
     if (!self.arg1Methods[name]) {
-        return false;
+        return !inclusive;
     }
 
     ids[frame.id] = true;
 
-    return true;
+    return inclusive;
 };
 
 //
@@ -292,7 +324,3 @@ Arg1Matcher.prototype.process = function process(handle, frame) {
 
     return true;
 };
-
-
-
-

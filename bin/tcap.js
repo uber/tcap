@@ -45,6 +45,7 @@ function main(argv) {
         return xs;
     }
 
+    var newline = '\n                             ';
     commander.version(require('../package.json').version)
         .option('-i --interface <interface>',
             'network interface interfaces ' +
@@ -55,13 +56,13 @@ function main(argv) {
             'packet filter in pcap-filter(7) syntax ' +
             '(default: all TCP packets on port 4040)')
         .option('-s --service <service-name>',
-            'service name or names to show ' +
-            '(default: all services shown)', collect, [])
+            'service name or names to show (default: all services shown), or' + newline +
+            'use "-service-name" to exclude the service', collect, [])
         .option('-t --thrift <thrift>',
             'path of the directory for thrift spec files')
         .option('-1 --arg1 <arg1-method>',
-            'arg1 method or methods to show ' +
-            '(default: all arg1 methods shown)', collect, [])
+            'arg1 method or methods to show (default: all arg1 methods shown), or'  + newline +
+            'use "-arg1-method" to exclude the arg1', collect, [])
         .option('--m1',
             'show arg1 name in call responses')
         .option('-r --response <response>',
