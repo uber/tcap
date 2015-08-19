@@ -178,7 +178,7 @@ Arg1Filter.prototype.take = function take(filter) {
     }
 };
 
-Arg1Filter.prototype.process = function processEx(handle, frame) {
+Arg1Filter.prototype.process = function process(handle, frame) {
     var self = this;
     var inclusive = !!self.inclusive;
 
