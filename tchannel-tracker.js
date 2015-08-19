@@ -37,8 +37,7 @@ function TChannelTracker(opts) {
 
     var ports = opts.ports.slice();
     if (ports.length) {
-        self.pcapFilter += ' and (' +
-            ports.map(portPredicate).join(' or ') + ')';
+        self.pcapFilter += ' and (' + portFilters(ports) + ')';
     } else if (!/\bport\b/.test(self.pcapFilter)) {
         self.pcapFilter += ' and port 4040';
     }
@@ -53,8 +52,22 @@ function TChannelTracker(opts) {
     self.color = opts.color
 }
 
-function portPredicate(port) {
-    return 'port ' + port;
+function portFilters(ports) {
+    var filter = '';
+    for (var i = 0; i < ports.length; i++) {
+        var port = ports[i];
+        if (port.indexOf('-') === -1) {
+            filter += 'port ' + port;
+        } else {
+            filter += 'portrange ' + port;
+        }
+
+        if (i !== ports.length - 1) {
+            filter += ' or ';
+        }
+    }
+
+    return filter;
 }
 
 util.inherits(TChannelTracker, events.EventEmitter);
