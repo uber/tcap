@@ -50,7 +50,7 @@ function main(argv) {
             'network interface interfaces ' +
             '(defaults to first with an address)', collect, [])
         .option('-p --port <port>',
-            'a port or ports to track', collect, [])
+            'a port to track or use "port1-port2" for a range of ports to track between port1 and port2', collect, [])
         .option('-f --filter <filter>',
             'packet filter in pcap-filter(7) syntax ' +
             '(default: all TCP packets on port 4040)')
