@@ -61,8 +61,7 @@ function main(argv) {
         .option('-t --thrift <thrift>',
             'path of the directory for thrift spec files')
         .option('-1 --arg1 <arg1-method>',
-            'arg1 method or methods to show ' +
-            '(default: all arg1 methods shown)'  + newline +
+            'arg1 method or methods to show (default: all arg1 methods shown), or'  + newline +
             'use "~arg1-method" to exclude the arg1', collect, [])
         .option('--m1',
             'show arg1 name in call responses')
