@@ -35,11 +35,18 @@ function TChannelTracker(opts) {
 
     self.filter = opts.filter || 'ip proto \\tcp';
 
-    var ports = opts.ports.slice();
-    if (ports.length) {
-        self.filter += ' and (' + ports.map(portPredicate).join(' or ') + ')';
-    } else if (!/\bport\b/.test(self.filter)) {
-        self.filter += ' and port 4040';
+    var portFilter = '';
+    if (opts.ports.length) {
+        portFilter += opts.ports.map(portPredicate).join(' or ');
+    }
+    if (opts.portRanges.length) {
+        if (portFilter) {
+            portFilter += ' or ';
+        }
+        portFilter += opts.portRanges.map(portRangePredicate).join(' or ');
+    }
+    if (portFilter) {
+        self.filter += ' and (' + portFilter + ')';
     }
 
     self.interfaces = opts.interfaces; // e.g., ['en0']
@@ -51,6 +58,10 @@ function TChannelTracker(opts) {
 
 function portPredicate(port) {
     return 'port ' + port;
+}
+
+function portRangePredicate(range) {
+    return 'portrange ' + range;
 }
 
 util.inherits(TChannelTracker, events.EventEmitter);
