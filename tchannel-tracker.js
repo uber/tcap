@@ -33,7 +33,7 @@ function TChannelTracker(opts) {
     var self = this;
     events.EventEmitter.call(self, opts);
 
-    self.pcapFilter = opts.filter || 'ip proto \\tcp';
+    self.pcapFilter = opts.pcapFilter || 'ip proto \\tcp';
 
     var ports = opts.ports.slice();
     if (ports.length) {
