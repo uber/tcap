@@ -26,6 +26,7 @@ var pcap = require('pcap');
 var util = require('util');
 var ansi = require('chalk');
 var events = require('events');
+var sprintf = require('sprintf-js').sprintf;
 var TChannelSessionTracker = require('./tchannel-session-tracker');
 
 module.exports = TChannelTracker;
@@ -107,14 +108,15 @@ function handleTcpSession(tcpSession, iface) {
     var self = this;
     var sessionNumber = self.nextSessionNumber++;
 
-    console.log(
-        ansi.cyan('session=%s %s src=%s --> dst=%s on %s'),
+    console.log(ansi.cyan(sprintf(
+        'ts=%10.03f session=%s %s src=%s --> dst=%s on %s',
+        Date.now() / 1000.0,
         sessionNumber,
         (tcpSession.missed_syn ? 'in progress' : 'started'),
         tcpSession.src,
         tcpSession.dst,
         iface
-    );
+    )));
 
     var filterHandle = {};
 
@@ -152,13 +154,14 @@ function handleTcpSession(tcpSession, iface) {
 
     tcpSession.once('end', handleSessionEnd);
     function handleSessionEnd(session) {
-        console.log(
-            ansi.cyan('session=%s ended src=%s --> dst=%s on %s'),
+        console.log(ansi.cyan(sprintf(
+            'ts=%10.03f session=%s ended src=%s --> dst=%s on %s',
+            Date.now() / 1000.0,
             sessionNumber,
             tcpSession.src,
             tcpSession.dst,
             iface
-        );
+        )));
 
         tcpSession.removeListener('data send', handleDataSend);
         tcpSession.removeListener('data recv', handleDataRecv);

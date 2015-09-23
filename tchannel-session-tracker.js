@@ -115,7 +115,8 @@ function handlePacket(packet) {
     var self = this;
     if (self.alwaysShowHex) {
         console.log(ansi.cyan(sprintf(
-            'session=%d %s %s %s packet=%s',
+            'ts=%10.03f session=%d %s %s %s packet=%s',
+            Date.now() / 1000.0,
             self.sessionNumber,
             self.tcpSession.src,
             (self.direction === 'outgoing' ? '-->' : '<--'),
@@ -160,7 +161,8 @@ function handleFrameNoFilter(frame) {
         frame.body.type;
     var parts = [];
     parts.push(util.format(ansi.green(sprintf(
-        'session=%d %s %s %s frame=%d type=0x%02x%s%s',
+        'ts=%10.03f session=%d %s %s %s frame=%d type=0x%02x%s%s',
+        Date.now() / 1000.0,
         self.sessionNumber,
         self.tcpSession.src,
         (self.direction === 'outgoing' ? '-->' : '<--'),
@@ -193,7 +195,8 @@ function handleError(error) {
     }
 
     console.log(ansi.red(sprintf(
-        'session=%d %s %s %s frame parse error',
+        'ts=%10.03f session=%d %s %s %s frame parse error',
+        Date.now() / 1000.0,
         self.sessionNumber,
         self.tcpSession.src,
         (self.direction === 'outgoing' ? '-->' : '<--'),
