@@ -51,7 +51,7 @@
     "check-ls": "npm ls 1>/dev/null",
     "cover": "npm run test-cover -s && npm run check-cover -s",
     "lint": "lint-trap .",
-    "test": "npm run check-ls -s && npm run lint -s # && npm run cover -s",
+    "test": "npm run check-ls -s",
     "test-cover": "istanbul cover --report html --print detail -- test/index.js",
     "trace": "itape test/index.js --trace",
     "travis": "npm run cover -s && istanbul report lcov && ((cat coverage/lcov.info | coveralls) || exit 0)",
