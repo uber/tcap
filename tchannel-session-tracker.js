@@ -194,6 +194,10 @@ function handleError(error) {
         return self.stopTracking();
     }
 
+    if (self.serviceNames && self.serviceNames.length > 0) {
+        return self.stopTracking();
+    }
+
     console.log(ansi.red(sprintf(
         'ts=%10.03f session=%d %s %s %s frame parse error',
         Date.now() / 1000.0,
