@@ -366,7 +366,7 @@ function inspectBody(body) {
         }
     }
     if (body.flags & 0x01) {
-        parts = parts.push(ansi.yellow('to be continued...'));
+        parts.push(ansi.yellow('to be continued...'));
     } else if (body.args && body.args[2]) {
         // TODO argstream accumulate and parse
         var as = self.inspectThrift(body.args[2], body.args[0]);
