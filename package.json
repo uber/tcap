@@ -36,7 +36,7 @@
     "lint-trap": "^1.0.0",
     "opn": "^1.0.1",
     "tape": "^3.4.0",
-    "uber-licence": "^1.2.0"
+    "uber-licence": "^2.0.0"
   },
   "licenses": [
     {
