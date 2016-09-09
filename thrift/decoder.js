@@ -22,11 +22,12 @@
 var ansi = require('chalk');
 var fs = require('fs');
 var path = require('path');
-var thriftify = require('thriftify');
+var Thrift = require('thriftrw').Thrift;
+var TStructRW = require('thriftrw/tstruct').TStructRW;
 
 var simpleDecoder = require('./simple-decoder');
 
-var specs = {};
+var functions = {};
 
 function setup(dir) {
     if (!dir) {
@@ -38,56 +39,53 @@ function setup(dir) {
     files.forEach(function eachFile(file) {
         var match = /([^\/]+)\.thrift$/.exec(file);
         if (match) {
-            var spec = thriftify.readSpecSync(path.join(dir, file));
+            var thrift = new Thrift({
+                entryPoint: path.join(dir, file),
+                allowFilesystemAccess: true
+            });
             fileRead.push(match[0]);
-            Object.keys(spec.servicesAndFunctions).forEach(
-                function each(service) {
-                    if (specs[service]) {
-                        console.log(ansi.red(
-                            ansi.bold('Warning: service name conflicts on "'
-                                + service + '"')));
-                        return;
-                    }
-                    specs[service] = spec;
+            Object.keys(thrift.services).forEach(function each(serviceName) {
+                var service = thrift.models[serviceName];
+                service.functions.forEach(function (f) {
+                    functions[f.fullName] = f;
                 });
+            });
         }
     });
 
     if (fileRead.length !== 0) {
-        console.log('Thrift specs read: ' + fileRead.join(', '));
+        console.log('Thrift IDLS read: ' + fileRead.join(', '));
+        console.log('Thrift procedures found: ' + Object.keys(functions).join(', '));
     } else {
         console.log(ansi.red(
-            ansi.bold('Warning: no thrift spec file read from ' + dir)));
+            ansi.bold('Warning: no thrift IDL file read from ' + dir)));
     }
 }
 
 function decode(arg3, arg1, direction) {
     if (!arg1 || !direction) {
-        return simpleDecoder.decode(arg3);
+        return simpleDecode(arg3);
     }
 
-    arg1 = arg1.toString('utf8');
-    var arg1s = arg1.split('::');
-    if (arg1s.length !== 2) {
-        return simpleDecoder.decode(arg3);
+    var thrift = functions[arg1];
+    if (!thrift) {
+        return simpleDecode(arg3);
     }
 
-    var spec = specs[arg1s[0]];
-    if (!spec) {
-        return simpleDecoder.decode(arg3);
-    }
-
-    try {
-        var result = thriftify.fromBuffer(arg3, spec,
-            arg1 + (direction === 'outgoing' ? '_args' : '_result'));
-    } catch (e) {
+    var rw = direction === 'outgoing' ? thrift.args.rw : thrift.result.rw;
+    var result = rw.fromBuffer(arg3);
+    if (result.err) {
         console.log(ansi.red(
-            ansi.bold('Thrift error: no thrift spec file read from ' + e)));
-
-        return simpleDecoder.decode(arg3);
+            ansi.bold('thrift error: could not decode with given IDL: ' + result.err)));
+        return simpleDecode(arg3);
     }
+    return result.value;
 
-    return result;
+}
+
+function simpleDecode(arg3) {
+    return simpleDecoder.decode(arg3);
+    // TODO use thriftrw instead and delete the special decoder
 }
 
 module.exports.setup = setup;
