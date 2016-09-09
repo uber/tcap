@@ -407,14 +407,10 @@ function inspectArgument(name, argument) {
 TChannelSessionTracker.prototype.inspectThrift =
 function inspectThrift(buf, arg1) {
     var self = this;
-    try {
-        var data = thriftDecoder.decode(buf, arg1, self.direction);
-        var parts = [ansi.yellow('arg3 as thrift')];
-        parts.push(util.inspect(data, {colors: self.color, depth: Infinity}));
-        return parts;
-    } catch (e) {
-        return null;
-    }
+    var data = thriftDecoder.decode(buf, arg1, self.direction);
+    var parts = [ansi.yellow('arg3 as thrift')];
+    parts.push(util.inspect(data, {colors: self.color, depth: Infinity}));
+    return parts;
 };
 
 TChannelSessionTracker.prototype.inspectJSON =

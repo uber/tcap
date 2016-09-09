@@ -27,7 +27,7 @@
     "pcap": "^2.0.1",
     "sprintf-js": "^1.0.2",
     "tchannel": "^3.5.19",
-    "thriftify": "1.0.0-alpha13"
+    "thriftrw": "^3.4.3"
   },
   "devDependencies": {
     "coveralls": "^2.10.0",
