@@ -1,5 +1,6 @@
 language: node_js
+sudo: true
 node_js:
   - "0.10"
-before_install: npm i npm@latest -g
+before_install: npm i npm@latest -g && sudo apt-get install libpcap-dev
 script: npm run travis
